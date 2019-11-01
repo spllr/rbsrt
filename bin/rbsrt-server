@@ -1,0 +1,68 @@
+#!/usr/bin/env ruby
+
+$:.push File.expand_path("../../lib", __FILE__)
+
+# parse options
+
+require 'optparse'
+
+options = {
+  :port => "5554",
+  :address => "0.0.0.0",
+  :recording_path => Dir.pwd,
+  :passphrase => nil
+}
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: rbsrt-server [options]"
+
+  opts.on("-p PORT", "--port=PORT", "server port (default: #{options[:port]})") do |port|
+    options[:port] = port.to_s
+  end
+  
+  opts.on("-a ADDRESS", "--address=ADDRESS", "server address (default: #{options[:address]})") do |address|
+    options[:address] = address.to_s
+  end
+
+  opts.on("-r PATH", "--recording-path=PATH", "directory to save recordings (default: #{options[:recording_path]})") do |path|
+    options[:recording_path] = File.expand_path(path, Dir.pwd)
+  end
+
+  opts.on("-S PASSPHRASE", "--passphrase=PASSPHRASE", "passphrase use to derive key for encryption") do |passphrase|
+    options[:passphrase] = passphrase
+  end
+end.parse!
+
+
+
+
+# start the server
+
+require 'rbsrt'
+
+puts "start srt server on port #{options[:port]}, address #{options[:address]}"
+
+server = SRT::Server.new options[:address], options[:port]
+
+# currently we can only set one passphrase for every connection
+# this will change in the future.
+server.passphrase = options[:passphrase] if options[:passphrase]
+
+puts "starting server"
+
+server.start do |connection|
+  puts "new connection: connections=#{connection_count}, id=#{connection.id}, streamid=#{connection.streamid}"
+
+  output_file = File.new "recording-#{Process.pid}-#{connection.id}.ts", "w+"
+  output_file.close_on_exec = true
+
+  connection.at_data do |chunk|
+    puts "data"
+    output_file.write(chunk)
+  end
+
+  connection.at_close do
+    puts "closed connection"
+    output_file.close
+  end
+end

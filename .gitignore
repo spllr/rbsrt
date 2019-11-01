@@ -1,0 +1,5 @@
+*.o
+*.log
+*.bundle
+Makefile
+.vscode

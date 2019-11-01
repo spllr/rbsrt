@@ -1,0 +1,82 @@
+#!/usr/bin/env ruby
+
+$:.push File.expand_path("../../lib", __FILE__)
+
+require "rbsrt"
+
+pids = []
+
+puts "Running rbsrt Sockets examples"
+puts "SRT version: #{SRT::SRT_VERSION}"
+
+
+# server
+
+pids << fork do
+  server = SRT::Socket.new
+  server.transmission_mode = :file
+
+  puts "server state=#{server.state}, id=#{server.id}"
+
+  server.bind "127.0.0.1", "5556"
+
+  puts "server #{server.state}"
+
+  server.listen 3
+
+  puts "server #{server.state}"
+
+  client = server.accept
+
+  puts "server accepted:  streamid=\"#{client.streamid}\", id=#{client.id}, tsbpdmode=#{client.tsbpdmode?}"
+
+  loop do
+    break unless client.connected?
+    break unless data = client.recvmsg
+    puts "server received: #{data}"
+  rescue SRT::Error::CONNLOST => e
+    puts "connection lost: #{e}"
+    break
+  rescue SRT::Error => e
+    puts "server error: #{e.class}"
+  end
+
+  puts "client closed #{client.closed?}"
+
+  server.close
+
+  puts "server done"
+end
+
+# client
+
+pids << fork do
+
+  client = SRT::Socket.new
+
+  client.streamid = "a ruby srt socket"
+  client.transmission_mode = :file
+
+  client.connect "127.0.0.1", "5556"
+
+  10.times do |i|
+    payload = "Hello from ruby client #{i}"
+    puts "will send: \"#{payload}\""
+    client.sendmsg "Hello from ruby client #{i}"
+    puts "did send: \"#{payload}\""
+    # sleep 0.1
+  rescue SRT::Error => e
+    puts "client error: #{e}"
+  end
+
+  sleep 0.1
+
+  client.close
+
+  puts "client done"
+end
+
+
+# wait for completion
+
+pids.each { |pid| Process.wait pid }

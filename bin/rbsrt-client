@@ -1,0 +1,106 @@
+#!/usr/bin/env ruby
+
+$:.push File.expand_path("../../lib", __FILE__)
+
+# parse options
+
+require 'optparse'
+
+options = {
+  :direction => "out",
+  :exec => nil,
+  :file => nil,
+  :url => ARGV.last,
+  :passphrase => nil,
+  :streamid => {
+    :mode => :request,
+    :type => :stream
+  }
+}
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: rbsrt-client [options] srt://host:port"
+  
+  opts.on("-e CMD", "--exec=CMD", "command to execute an use as input or output") do |cmd|
+    options[:exec] = cmd
+  end
+  
+  opts.on("-f PATH", "--file=PATH", "file to send to the server") do |path|
+    options[:path] = path
+  end
+  
+  opts.on("-r NAME", "--resource-name=NAME", "name of the resource to transmit or receive") do |resource_name|
+    options[:streamid][:resource_name] = resource_name
+  end
+  
+  opts.on("-u USER_NAME", "--user-name=USER_NAME", "user name") do |user_name|
+    options[:streamid][:user_name] = user_name
+  end
+  
+  opts.on("-m MODE", "--mode=MODE", "connection mode. Can be one of 'request', 'publish' or 'bidirectional'") do |mode|
+    options[:streamid][:mode] = mode
+  end
+  
+  opts.on("-t TYPE", "--type=TYPE", "connection type. Can be one of 'stream', 'file' or 'auth'") do |type|
+    options[:streamid][:type] = type
+  end
+  
+  opts.on("-s SESSIONID", "--sessionid=SESSIONID", "a sessionid") do |sessionid|
+    options[:streamid][:sessionid] = sessionid
+  end
+  
+  opts.on("-S PASSPHRASE", "--passphrase=PASSPHRASE", "passphrase used to derive key for encryption") do |passphrase|
+    options[:passphrase] = passphrase
+  end
+end.parse!
+
+
+# start server
+
+require 'rbsrt'
+require 'uri'
+
+puts "create srt client"
+
+streamid_info = SRT::StreamIDComponents.new options[:streamid]
+
+puts streamid_info
+
+client = SRT::Client.new
+
+client.transmission_mode = streamid_info.type == :file ? :file : :live
+client.streamid = streamid_info.to_s
+client.passphrase = options[:passphrase]
+
+puts "connect srt client"
+
+puts "before connect: #{client.connected?}"
+
+at_exit { client.close }
+
+begin
+  uri = URI.parse(options[:url])
+  puts "connect to #{uri.host.to_s} on port #{uri.port.to_s}"
+  client.connect uri.host.to_s, uri.port.to_s
+rescue StandardError => e
+  puts "Connection failed. #{e.message}"
+  exit 1
+end
+
+# transmit file contents
+if file = options[:file]
+  
+  
+  
+# transmist cmd stdout
+elsif cmd = options[:exec]
+  require 'open3'
+  Open3.popen3(cmd) do |stdin, stdout, stderr, wait_thr|
+    stdout.each do |buf|
+      puts "data: #{buf.length}"
+      client.sendmsg buf
+    end
+  end
+else
+  
+end
