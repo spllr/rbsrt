@@ -186,7 +186,7 @@ describe SRT::StreamIDComponents do
         streamid.wont_be_nil
         streamid.must_be_instance_of String
         streamid.wont_be_empty
-        streamid.must_match /^!#::/
+        streamid.must_match /^#!::/
       end
 
       it "sets the 'r' var to the resource name" do
@@ -217,5 +217,20 @@ describe SRT::StreamIDComponents do
         streamid.must_match /(::|,)baz=bar(,|$)/
       end
     end
+
+    it "can parse it's own output" do
+      s = SRT::StreamIDComponents.new(parser.to_s)
+
+      s.resource_name.must_equal "myresource"
+      s.user_name.must_equal "emma"
+      s.mode.must_equal :publish
+      s.host_name.must_equal "stream2.recce.nl"
+      s.type.must_equal :file
+      s.sessionid.must_equal "bcde"
+
+      # extra properties 
+      s.baz.must_equal "bar"
+    end
   end
 end
+

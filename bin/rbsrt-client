@@ -87,6 +87,13 @@ rescue StandardError => e
   exit 1
 end
 
+
+if streamid_info.mode == :request
+  while chunk = client.read
+    print chunk
+  end
+end
+
 # transmit file contents
 if file = options[:file]
   
@@ -104,3 +111,4 @@ elsif cmd = options[:exec]
 else
   
 end
+  

@@ -5,6 +5,8 @@ module SRT
     Types = ["stream", "file", "auth"]
 
     Modes = ["request", "publish", "bidirectional"]
+
+    Header = "#!::"
     
     attr_accessor :resource_name
     attr_accessor :user_name
@@ -27,16 +29,18 @@ module SRT
       if args.first.class == ::Hash
         merge_hash!(args.first)
       elsif streamid = args.first.to_s
-        unless streamid.index("#!::") == 0
+        unless streamid.index(Header) == 0
           @resource_name = streamid
+          puts "TAKE LITERAL: (#{streamid.index(Header) == 0}) #{streamid}"
         else
+          puts "TAKE STREAMID: #{streamid}"
           merge_str!(streamid)
         end
       end
     end
 
     def to_s
-      streamid = "!#::"
+      streamid = Header.dup
 
       vars = []
 
