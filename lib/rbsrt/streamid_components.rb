@@ -1,5 +1,7 @@
 # srt streamid parser based on https://github.com/Haivision/srt/blob/master/docs/AccessControl.md
 
+require "uri"
+
 module SRT
   class StreamIDComponents
     Types = ["stream", "file", "auth"]
@@ -29,12 +31,12 @@ module SRT
       if args.first.class == ::Hash
         merge_hash!(args.first)
       elsif streamid = args.first.to_s
-        unless streamid.index(Header) == 0
-          @resource_name = streamid
-          puts "TAKE LITERAL: (#{streamid.index(Header) == 0}) #{streamid}"
-        else
-          puts "TAKE STREAMID: #{streamid}"
+        if streamid.index(Header) == 0
           merge_str!(streamid)
+        elsif streamid =~ URI::regexp
+          merge_uri!(URI(streamid))
+        else
+          @resource_name = streamid
         end
       end
     end
@@ -67,44 +69,45 @@ module SRT
       end
     end
 
+    def set(key, val)
+      case key.to_s
+      when 'resource_name', 'r' then @resource_name = val
+      when 'user_name', 'u' then @user_name = val
+      when 'mode', 'm' then @mode = val.to_sym if Modes.include?(val.to_s)
+      when 'host_name', 'h' 
+        if sep = val.index("/")
+          @host_name = val[0..(sep - 1)]
+          (@resource_name = val[(sep + 1)..-1] unless @resource_name)
+        else
+          @host_name = val
+        end
+      when 'type', 't' then (@type = val.to_sym if Types.include?(val.to_s))
+      when 'sessionid', 's' then @sessionid = val
+      else @extra[key] = val
+      end
+    end
+
+    def merge_uri!(streamid)
+      uri = URI(streamid)
+
+      @host_name = uri.hostname
+      @resource_name = uri.path[1..-1] if uri.path
+
+      if uri.query && form = URI.decode_www_form(uri.query)
+        merge_hash!(Hash[form])
+      end
+    end
+
     def merge_str!(streamid)
       streamid.scan(/([a-z0-9_-]+?)=(.+?)(,|$)/i).each do |key,val,_|
-        case key
-        when "r" then @resource_name = val
-        when "u" then @user_name = val
-        when "m" then @mode = val.to_sym if Modes.include?(val)
-        when "h" 
-          if sep = val.index("/")
-            @host_name = val[0..(sep - 1)]
-            @resource_name = val[(sep + 1)..-1] unless @resource_name
-          else
-            @host_name = val
-          end
-        when "t" then @type = val.to_sym if Types.include?(val)
-        when "s" then @sessionid = val
-        else @extra[key] = val
-        end
+        set(key, val)
       end
     end
 
     def merge_hash!(hash)
       hash.each do |key, val|
-        case key
-        when :resource_name then @resource_name = val
-        when :user_name then @user_name = val
-        when :mode then @mode = val.to_sym if Modes.include?(val.to_s)
-        when :host_name 
-          if sep = val.index("/")
-            @host_name = val[0..(sep - 1)]
-            (@resource_name = val[(sep + 1)..-1] unless @resource_name)
-          else
-            @host_name = val
-          end
-        when :type then (@type = val.to_sym if Types.include?(val.to_s))
-        when :sessionid then @sessionid = val
-        else @extra[key] = val
+        set(key, val)
       end
-    end
     end
   end
 end

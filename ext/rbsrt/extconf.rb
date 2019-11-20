@@ -20,7 +20,7 @@ LIB_DIRS << LIBDIR
 LIB_DIRS << '/usr/lib' if File.directory?('/usr/lib')
 
 dir_config('srt', HEADER_DIRS, LIB_DIRS)
-dir_config('c++', HEADER_DIRS, LIB_DIRS)
+# dir_config('c++', HEADER_DIRS, LIB_DIRS)
 
 # srt dependencies
 
@@ -31,11 +31,6 @@ end
 unless find_library('srt', 'srt_create_socket')
   abort "libsrt is missing.  please install libsrt: https://github.com/Haivision/srt"
 end
-
-
-have_library("crypto")
-have_library("ssl")
-have_library("c++")
 
 dir_config(extension_name)
 

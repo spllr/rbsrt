@@ -7,7 +7,7 @@ Gem::Specification.new do |s|
   s.version     = SRT::VERSION
   s.licenses    = ['MPLv2.0', 'MIT']
   s.summary     = "Ruby API for SRT (Secure Reliable Transport)"
-  s.description = "Build srt (Secure Reliable Transport) servers and clients with Ruby"
+  s.description = "Build SRT (Secure Reliable Transport) servers and clients with Ruby"
   s.authors     = ["Klaas Speller"]
   s.email       = ["klaas@recce.nl"]
   s.files       = Dir['README*.md', 'lib/**/*', 'ext/**/*', 'bin/**/*'] + ['Rakefile', 'rbsrt.gemspec']

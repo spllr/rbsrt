@@ -27,6 +27,7 @@ OptionParser.new do |opts|
   
   opts.on("-f PATH", "--file=PATH", "file to send to the server") do |path|
     options[:path] = path
+    options[:type] = :file
   end
   
   opts.on("-r NAME", "--resource-name=NAME", "name of the resource to transmit or receive") do |resource_name|
@@ -96,9 +97,7 @@ end
 
 # transmit file contents
 if file = options[:file]
-  
-  
-  
+  puts "file transport is not implemented yet"
 # transmist cmd stdout
 elsif cmd = options[:exec]
   require 'open3'

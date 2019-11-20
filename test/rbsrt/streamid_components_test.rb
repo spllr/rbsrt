@@ -47,7 +47,6 @@ describe SRT::StreamIDComponents do
     end
 
     describe "access control style streamid string" do
-      
       let(:streamid) { "#!::r=foobar,u=admin,h=stream.recce.nl,s=12345,t=stream,m=publish" }
 
       let(:parser) { 
@@ -159,6 +158,52 @@ describe SRT::StreamIDComponents do
         parser.mode.must_equal :publish
         parser.type.must_equal :stream
         parser.resource_name.must_equal "my_movie.ts"
+      end
+    end
+
+    describe "initialize with a URL" do
+      describe "shorthand variables" do
+        let(:url) { "srt://stream.recce.nl:5555?r=foo&t=stream&m=publish&u=admin&s=45678&custom=baz" }
+
+        let(:parser) { SRT::StreamIDComponents.new(url) }
+
+        it "uses the 'r' query var as the resource name" do
+          parser.resource_name.must_equal "foo"
+        end
+
+        it "uses the 'u' query var as user name" do
+          parser.user_name.must_equal "admin"
+        end
+
+        it "uses the 'm' query var as mode" do
+          parser.mode.must_equal :publish
+        end
+
+        it "uses the host as host name" do
+          parser.host_name.must_equal "stream.recce.nl"
+        end
+
+        it "uses the 't' query var as type" do
+          parser.type.must_equal :stream
+        end
+
+        it "uses the 's' query var as session id" do
+          parser.sessionid.must_equal "45678"
+        end
+
+        it "stores custom variables" do
+          parser.custom.must_equal "baz"
+        end
+      end
+
+      describe "pathname" do
+        let(:url) { "srt://stream.recce.nl:5555/my/movie.ts" }
+
+        let(:parser) { SRT::StreamIDComponents.new(url) }
+
+        it "uses the path as the resource name" do
+          parser.resource_name.must_equal "my/movie.ts"
+        end
       end
     end
   end

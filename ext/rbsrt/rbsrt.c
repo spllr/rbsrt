@@ -50,47 +50,10 @@
 #include <srt/srt.h>
 
 
-// MARK: - Utils
+// MARK: - API
 
-// MARK: - Status
-
-#define RBSRT_SUCCESS 0
-#define RBSRT_FAILURE 1
-
-
-// MARK: Debug
-
-#define RBSRT_HAVE_DEBUG
-
-#ifdef RBSRT_HAVE_DEBUG
-#define RBSRT_DEBUG 1
-#endif
-
-
-#if RBSRT_DEBUG
-#define RBSRT_DEBUG_MSG_MAX 1024
-#define DEBUG_PRINT(...)                                \
-{                                                       \
-    char debugmsg__[RBSRT_DEBUG_MSG_MAX];               \
-    sprintf(debugmsg__, ## __VA_ARGS__);                \
-    fprintf(stderr, "rbsrt - %s\n", debugmsg__);        \
-}                                                       \
-
-#define DEBUG_ERROR_PRINT(...)                          \
-{                                                       \
-    char debugmsg__[RBSRT_DEBUG_MSG_MAX];               \
-    sprintf(debugmsg__, ## __VA_ARGS__);                \
-    fprintf(stderr, "rbsrt error - %s\n", debugmsg__);  \
-}  
-#else
-#define DEBUG_PRINT(...)
-#define DEBUG_ERROR_PRINT(...)
-#endif
-
-
-// MARK: Constants
-
-#define RBSRT_PAYLOAD_SIZE 1316
+#include "rbsrt.h"
+#include "rbstats.h"
 
 
 // MARK: Network
@@ -155,174 +118,6 @@ typedef enum RBSRTClientFlag
     RBSRT_CLIENT_CONNECTED          = (1 << 1),
     RBSRT_CLIENT_CLOSED             = (1 << 2)
 } rbsrt_client_flag_t;
-
-
-// MARK: - Structs
-
-typedef struct RBSRTSocketBase
-{
-    SRTSOCKET socket;
-} rbsrt_socket_base_t;
-
-typedef struct RBSRTSocket
-{
-    SRTSOCKET socket;
-} rbsrt_socket_t;
-
-typedef struct RBSRTConnection
-{
-    SRTSOCKET socket;
-    VALUE at_data_block;
-    VALUE at_close_block;
-} rbsrt_connection_t;
-
-typedef struct RBSRTServer
-{
-    SRTSOCKET socket;
-    rbsrt_server_flag_t flags;
-    atomic_size_t num_connections;
-    SRT_EPOLL_T epollid;
-    VALUE acceptor_block;
-} rbsrt_server_t;
-
-typedef struct RBSRTClient
-{
-    SRTSOCKET socket;
-    rbsrt_client_flag_t flags;
-} rbsrt_client_t;
-
-typedef struct RBSRTPoll
-{
-    SRT_EPOLL_T epollid;
-    VALUE sockets_by_id;
-} rbsrt_poll_t;
-
-
-// MARK: - Headers
-
-// MARK: SRT::Socket Class
-
-size_t rbsrt_socket_dsize(const void *socket);
-void rbsrt_socket_dmark(void *data);
-void rbsrt_socket_deallocate(rbsrt_socket_t *socket);
-
-// MARK: SRT::Connection Class
-
-size_t rbsrt_connection_dsize(const void *connection);
-void rbsrt_connection_dmark(void *data);
-void rbsrt_connection_deallocate(rbsrt_connection_t *connection);
-
-// MARK: SRT::Server Class
-
-size_t rbsrt_server_dsize(const void *server);
-void rbsrt_server_dmark(void *data);
-void rbsrt_server_deallocate(rbsrt_server_t *server);
-
-// MARK: SRT::Client Class
-
-size_t rbsrt_client_dsize(const void *client);
-void rbsrt_client_dmark(void *data);
-void rbsrt_client_deallocate(rbsrt_client_t *client);
-
-// MARK: SRT::Poll Class
-
-size_t rbsrt_poll_dsize(const void *poll);
-void rbsrt_poll_dmark(void *data);
-void rbsrt_poll_deallocate(rbsrt_poll_t *poll);
-
-
-
-// MARK: - Ruby Structs
-
-static const rb_data_type_t rbsrt_socket_rbtype = {
-	.wrap_struct_name = "rbsrt_socket",
-	.function = {
-		.dfree = (void *)rbsrt_socket_deallocate,
-        .dsize = rbsrt_socket_dsize,
-        .dmark = rbsrt_socket_dmark
-	},
-	.flags = RUBY_TYPED_FREE_IMMEDIATELY,
-};
-
-static const rb_data_type_t rbsrt_connection_rbtype = {
-	.wrap_struct_name = "rbsrt_connection",
-	.function = {
-		.dfree = (void *)rbsrt_connection_deallocate,
-        .dsize = rbsrt_connection_dsize,
-        .dmark = rbsrt_connection_dmark,
-	},
-	.flags = RUBY_TYPED_FREE_IMMEDIATELY,
-};
-
-static const rb_data_type_t rbsrt_server_rbtype = {
-	.wrap_struct_name = "rbsrt_server",
-	.function = {
-		.dfree = (void *)rbsrt_server_deallocate,
-        .dsize = rbsrt_server_dsize,
-        .dmark = rbsrt_server_dmark
-	},
-	.flags = RUBY_TYPED_FREE_IMMEDIATELY,
-};
-
-static const rb_data_type_t rbsrt_client_rbtype = {
-	.wrap_struct_name = "rbsrt_client",
-	.function = {
-		.dfree = (void *)rbsrt_client_deallocate,
-        .dsize = rbsrt_client_dsize,
-        .dmark = rbsrt_client_dmark
-	},
-	.flags = RUBY_TYPED_FREE_IMMEDIATELY,
-};
-
-static const rb_data_type_t rbsrt_poll_rbtype = {
-	.wrap_struct_name = "rbsrt_poll",
-	.function = {
-		.dfree = (void *)rbsrt_poll_deallocate,
-        .dsize = rbsrt_poll_dsize,
-        .dmark = rbsrt_poll_dmark
-	},
-	.flags = RUBY_TYPED_FREE_IMMEDIATELY,
-};
-
-
-// MARK: Unwraps
-
-#define RBSRT_IS_SOCKET(socket) (srt_getsockstate(socket->socket) != SRTS_NONEXIST)
-
-#define RBSRT_CHECK_SOCKET(input, socket)                                           \
-if (!RBSRT_IS_SOCKET(socket))                                                       \
-{                                                                                   \
-    rb_raise(rb_eTypeError,                                                         \
-            "wrong type %"PRIsVALUE" is not a SRT Socket Type",                     \
-            rb_obj_class(input));                                                   \
-}                                                                                   \
-
-// NOTE: Bypassing some safty guards allowing us to use same function for server, 
-//       connection, socket, etc.
-#define RBSRT_SOCKET_BASE_UNWRAP(input, output)                                     \
-rbsrt_socket_base_t *output = (rbsrt_socket_base_t *)DATA_PTR(input);               \
-RBSRT_CHECK_SOCKET(input, output);                                                  \
-
-#define RBSRT_SOCKET_UNWRAP(input, output)                                          \
-rbsrt_socket_t *output;                                                             \
-TypedData_Get_Struct(input, rbsrt_socket_t, &rbsrt_socket_rbtype, output);          \
-
-#define RBSRT_CONNECTION_UNWRAP(input, output)                                      \
-rbsrt_connection_t *output;                                                         \
-TypedData_Get_Struct(input, rbsrt_connection_t, &rbsrt_connection_rbtype, output);  \
-
-#define RBSRT_SERVER_UNWRAP(input, output)                                          \
-rbsrt_server_t *output;                                                             \
-TypedData_Get_Struct(input, rbsrt_server_t, &rbsrt_server_rbtype, output);          \
-
-#define RBSRT_CLIENT_UNWRAP(input, output)                                          \
-rbsrt_client_t *output;                                                             \
-TypedData_Get_Struct(input, rbsrt_client_t, &rbsrt_client_rbtype, output);          \
-
-#define RBSRT_POLL_UNWRAP(input, output)                                            \
-rbsrt_poll_t *output;                                                               \
-TypedData_Get_Struct(input, rbsrt_poll_t, &rbsrt_poll_rbtype, output);              \
-
 
 // MARK: Errors
 
@@ -640,7 +435,7 @@ void rbsrt_init_errors()
 
 VALUE rbsrt_srt_startup(void *c)
 {
-    DEBUG_PRINT("srt startup");
+    RBSRT_DEBUG_PRINT("srt startup");
 
     srt_startup();
 
@@ -649,7 +444,7 @@ VALUE rbsrt_srt_startup(void *c)
 
 void rbsrt_srt_cleanup(ruby_vm_t *vm)
 {
-    DEBUG_PRINT("srt cleanup");
+    RBSRT_DEBUG_PRINT("srt cleanup");
 
     srt_cleanup();
 }
@@ -682,7 +477,7 @@ VALUE rbsrt_socket_get_socket_state(VALUE self)
 {
     RBSRT_SOCKET_BASE_UNWRAP(self, socket);
 
-    DEBUG_PRINT("socket get socket state for %d", socket->socket);
+    RBSRT_DEBUG_PRINT("socket get socket state for %d", socket->socket);
 
     SRT_SOCKSTATUS state = srt_getsockstate(socket->socket);
 
@@ -820,7 +615,7 @@ VALUE rbsrt_socket_connect(VALUE self, VALUE host, VALUE port)
     Check_Type(host, T_STRING);
     Check_Type(port, T_STRING);
 
-    DEBUG_PRINT("socket connect: host=%s, port=%s", StringValuePtr(host), StringValuePtr(port));
+    RBSRT_DEBUG_PRINT("socket connect: host=%s, port=%s", StringValuePtr(host), StringValuePtr(port));
 
     RBSRT_SOCKET_BASE_UNWRAP(self, socket);
 
@@ -856,7 +651,7 @@ VALUE rbsrt_socket_connect(VALUE self, VALUE host, VALUE port)
 
         if (srt_connect(socket->socket, p->ai_addr, p->ai_addrlen) == SRT_ERROR)
         {
-            DEBUG_PRINT("failed to connect socket: %s", srt_getlasterror_str());
+            RBSRT_DEBUG_PRINT("failed to connect socket: %s", srt_getlasterror_str());
 
             continue;
         }
@@ -869,7 +664,7 @@ VALUE rbsrt_socket_connect(VALUE self, VALUE host, VALUE port)
                 ipstr,
                 sizeof ipstr);
 
-        DEBUG_PRINT("socket connected: ip=%s", ipstr);
+        RBSRT_DEBUG_PRINT("socket connected: ip=%s", ipstr);
         #endif
 
         // connected
@@ -893,7 +688,7 @@ VALUE rbsrt_socket_connect(VALUE self, VALUE host, VALUE port)
 
 VALUE rbsrt_socket_accept(VALUE self)
 {
-    DEBUG_PRINT("server accept");
+    RBSRT_DEBUG_PRINT("server accept");
 
     RBSRT_SOCKET_BASE_UNWRAP(self, socket);
 
@@ -980,7 +775,7 @@ VALUE rbsrt_socket_bind(VALUE self, VALUE address, VALUE port)
 
 VALUE rbsrt_socket_close(VALUE self)
 {
-    DEBUG_PRINT("socket close");
+    RBSRT_DEBUG_PRINT("socket close");
 
     RBSRT_SOCKET_BASE_UNWRAP(self, socket)
 
@@ -999,7 +794,7 @@ VALUE rbsrt_socket_close(VALUE self)
 
 VALUE rbsrt_socket_sendmsg(VALUE self, VALUE message)
 {
-    DEBUG_PRINT("socket sendmsg");
+    RBSRT_DEBUG_PRINT("socket sendmsg");
 
     RBSRT_SOCKET_BASE_UNWRAP(self, socket)
 
@@ -1012,12 +807,12 @@ VALUE rbsrt_socket_sendmsg(VALUE self, VALUE message)
     case T_STRING:
         buf = StringValuePtr(message);
         buf_len = (int)RSTRING_LEN(message);
-        DEBUG_PRINT("sendmsg: %d", buf_len);
+        RBSRT_DEBUG_PRINT("sendmsg: %d", buf_len);
         break;
 
     case T_OBJECT:
     case T_DATA:
-        DEBUG_PRINT("sendmsg DATA");
+        RBSRT_DEBUG_PRINT("sendmsg DATA");
         // TODO: Support binary 
         rb_raise(rb_eArgError, "message must be a string");
         // rdata
@@ -1054,7 +849,7 @@ VALUE rbsrt_socket_sendmsg(VALUE self, VALUE message)
             break;
         }
 
-        DEBUG_PRINT("send bytes %d", nbytes);
+        RBSRT_DEBUG_PRINT("send bytes %d", nbytes);
     } 
     while ((total_nbytes += nbytes) < buf_len);
 
@@ -1063,7 +858,7 @@ VALUE rbsrt_socket_sendmsg(VALUE self, VALUE message)
 
 VALUE rbsrt_socket_recvmsg(VALUE self)
 {
-    DEBUG_PRINT("socket recvmsg");
+    RBSRT_DEBUG_PRINT("socket recvmsg");
 
     RBSRT_SOCKET_BASE_UNWRAP(self, socket)
 
@@ -1224,7 +1019,7 @@ VALUE rbsrt_socket_get_streamid(VALUE self)
 
 VALUE rbsrt_socket_set_transtype(VALUE self, VALUE type)
 {
-    DEBUG_PRINT("socket set transmission type");
+    RBSRT_DEBUG_PRINT("socket set transmission type");
 
     // unwrap type argument
 
@@ -1462,14 +1257,14 @@ void rbsrt_socket_base_define_io_api(VALUE klass)
 
 size_t rbsrt_socket_dsize(const void *socket)
 {
-    DEBUG_PRINT("dsize srt socket");
+    RBSRT_DEBUG_PRINT("dsize srt socket");
 
     return sizeof(rbsrt_client_t);
 }
 
 void rbsrt_socket_dmark(void *socket)
 {
-    DEBUG_PRINT("dmark srt socket");
+    RBSRT_DEBUG_PRINT("dmark srt socket");
 }
 
 
@@ -1477,7 +1272,7 @@ void rbsrt_socket_dmark(void *socket)
 
 void rbsrt_socket_deallocate(rbsrt_socket_t *socket)
 {
-    DEBUG_PRINT("deallocate srt socket");
+    RBSRT_DEBUG_PRINT("deallocate srt socket");
 
     srt_close(socket->socket); // TODO: Check socket state before closing
 
@@ -1486,7 +1281,7 @@ void rbsrt_socket_deallocate(rbsrt_socket_t *socket)
 
 VALUE rbsrt_socket_allocate(VALUE klass)
 {
-    DEBUG_PRINT("allocate socket");
+    RBSRT_DEBUG_PRINT("allocate socket");
 
     rbsrt_socket_t *socket = malloc(sizeof(rbsrt_socket_t));
 
@@ -1497,7 +1292,7 @@ VALUE rbsrt_socket_allocate(VALUE klass)
 
 VALUE rbsrt_socket_initialize(VALUE self)
 {
-    DEBUG_PRINT("initialize socket");
+    RBSRT_DEBUG_PRINT("initialize socket");
 
     RBSRT_SOCKET_UNWRAP(self, socket);
 
@@ -1518,14 +1313,14 @@ VALUE rbsrt_socket_initialize(VALUE self)
 
 size_t rbsrt_connection_dsize(const void *server)
 {
-    DEBUG_PRINT("connection dsize");
+    RBSRT_DEBUG_PRINT("connection dsize");
     
     return sizeof(rbsrt_connection_t);
 }
 
 void rbsrt_connection_dmark(void *data)
 {
-    DEBUG_PRINT("connection mark");
+    RBSRT_DEBUG_PRINT("connection mark");
 
     rbsrt_connection_t *connection = (rbsrt_connection_t *)data;
 
@@ -1545,7 +1340,7 @@ void rbsrt_connection_dmark(void *data)
 
 VALUE rbsrt_connection_allocate(VALUE klass)
 {
-    DEBUG_PRINT("connection allocate");
+    RBSRT_DEBUG_PRINT("connection allocate");
 
     rbsrt_connection_t *connection = malloc(sizeof(rbsrt_connection_t));
 
@@ -1556,7 +1351,7 @@ VALUE rbsrt_connection_allocate(VALUE klass)
 
 void rbsrt_connection_deallocate(rbsrt_connection_t *connection)
 {
-    DEBUG_PRINT("connection deallocate");
+    RBSRT_DEBUG_PRINT("connection deallocate");
 
     free(connection);
 }
@@ -1566,7 +1361,7 @@ void rbsrt_connection_deallocate(rbsrt_connection_t *connection)
 
 VALUE rbsrt_connection_set_at_data_block(VALUE self)
 {
-    DEBUG_PRINT("connection set data block");
+    RBSRT_DEBUG_PRINT("connection set data block");
 
     rb_need_block();
 
@@ -1579,7 +1374,7 @@ VALUE rbsrt_connection_set_at_data_block(VALUE self)
 
 VALUE rbsrt_connection_set_at_close_block(VALUE self)
 {
-    DEBUG_PRINT("connection set close block");
+    RBSRT_DEBUG_PRINT("connection set close block");
 
     rb_need_block();
 
@@ -1596,14 +1391,14 @@ VALUE rbsrt_connection_set_at_close_block(VALUE self)
 
 size_t rbsrt_server_dsize(const void *server)
 {
-    DEBUG_PRINT("server dsize");
+    RBSRT_DEBUG_PRINT("server dsize");
 
     return sizeof(rbsrt_server_t);
 }
 
 void rbsrt_server_dmark(void *data)
 {
-    DEBUG_PRINT("server mark");
+    RBSRT_DEBUG_PRINT("server mark");
 
     rbsrt_server_t *server = (rbsrt_server_t *)data;
 
@@ -1633,7 +1428,7 @@ int rbsrt_server_listen_callback(void* context, SRTSOCKET remote_socket, int hs_
 
 void rbsrt_server_deallocate(rbsrt_server_t *server)
 {
-    DEBUG_PRINT("deallocate srt server");
+    RBSRT_DEBUG_PRINT("deallocate srt server");
 
     SRT_SOCKSTATUS status = srt_getsockstate(server->socket);
 
@@ -1647,7 +1442,7 @@ void rbsrt_server_deallocate(rbsrt_server_t *server)
  
 VALUE rbsrt_server_allocate(VALUE klass)
 {
-    DEBUG_PRINT("server allocate");
+    RBSRT_DEBUG_PRINT("server allocate");
 
     rbsrt_server_t *server = malloc(sizeof(rbsrt_server_t));
 
@@ -1658,7 +1453,7 @@ VALUE rbsrt_server_allocate(VALUE klass)
 
 VALUE rbsrt_server_initialize(VALUE self, VALUE address, VALUE port)
 {
-    DEBUG_PRINT("server initialize");
+    RBSRT_DEBUG_PRINT("server initialize");
 
     rbsrt_server_t *server;
     int status;
@@ -1750,7 +1545,7 @@ VALUE rbsrt_server_initialize(VALUE self, VALUE address, VALUE port)
 
 VALUE rbsrt_server_close(VALUE self)
 {
-    DEBUG_PRINT("server close");
+    RBSRT_DEBUG_PRINT("server close");
 
     RBSRT_SERVER_UNWRAP(self, server);
 
@@ -1791,7 +1586,7 @@ VALUE rbsrt_server_connection_count(VALUE self)
 
 VALUE rbsrt_server_start(VALUE self)
 {
-    DEBUG_PRINT("server start");
+    RBSRT_DEBUG_PRINT("server start");
 
     rb_need_block();
 
@@ -1895,7 +1690,7 @@ VALUE rbsrt_server_start(VALUE self)
                 case SRTS_CLOSED:
                 case SRTS_NONEXIST:
                 case SRTS_BROKEN:
-                    DEBUG_PRINT("removing connection with socket: %d", sock);
+                    RBSRT_DEBUG_PRINT("removing connection with socket: %d", sock);
 
                     srt_epoll_remove_usock(server->epollid, sock);
 
@@ -1908,7 +1703,7 @@ VALUE rbsrt_server_start(VALUE self)
                             DEBUG_ERROR_PRINT("removed to many connections");
                         }
 
-                        DEBUG_PRINT("remove connection with socket %d, now %lu sockets", sock, RBSRT_SERVER_NUM_CONNECTIONS(server));
+                        RBSRT_DEBUG_PRINT("remove connection with socket %d, now %lu sockets", sock, RBSRT_SERVER_NUM_CONNECTIONS(server));
 
                         RBSRT_CONNECTION_UNWRAP(rb_connection, removed_connection);
 
@@ -1930,32 +1725,32 @@ VALUE rbsrt_server_start(VALUE self)
                 case SRTS_CONNECTED:
                     if (event->events & SRT_EPOLL_IN)
                     {
-                        DEBUG_PRINT("will read from socket %d (max bytes %d)", sock, read_buf_size);
+                        RBSRT_DEBUG_PRINT("will read from socket %d (max bytes %d)", sock, read_buf_size);
 
                         nbytes = srt_recvmsg2(event->fd, read_buf, read_buf_size, NULL);
 
                         if (nbytes == SRT_ERROR)
                         {
-                            DEBUG_PRINT("failed to read from socket %d: %s", sock, srt_getlasterror_str());
+                            RBSRT_DEBUG_PRINT("failed to read from socket %d: %s", sock, srt_getlasterror_str());
 
                             break;
                         }
 
                         if (nbytes > 0)
                         {
-                            DEBUG_PRINT("received %d bytes from socket %d", nbytes, sock);
+                            RBSRT_DEBUG_PRINT("received %d bytes from socket %d", nbytes, sock);
 
                             rb_connection = rb_hash_lookup(connections_by_socket, INT2FIX(sock));
 
                             if (RTEST(rb_connection))
                             {
-                                DEBUG_PRINT("found connection for socket %d", sock);
+                                RBSRT_DEBUG_PRINT("found connection for socket %d", sock);
 
                                 TypedData_Get_Struct(rb_connection, rbsrt_connection_t, &rbsrt_connection_rbtype, connection);
 
                                 if (connection->at_data_block)
                                 {
-                                    DEBUG_PRINT("found data handler for socket %d", sock);
+                                    RBSRT_DEBUG_PRINT("found data handler for socket %d", sock);
 
                                     VALUE data = rb_str_new(read_buf, nbytes);
 
@@ -1982,7 +1777,7 @@ VALUE rbsrt_server_start(VALUE self)
 
 VALUE rbsrt_server_accept(VALUE self)
 {
-    DEBUG_PRINT("server accept");
+    RBSRT_DEBUG_PRINT("server accept");
 
     RBSRT_SERVER_UNWRAP(self, server);
 
@@ -2015,14 +1810,14 @@ VALUE rbsrt_server_accept(VALUE self)
 
 size_t rbsrt_client_dsize(const void *client)
 {
-    DEBUG_PRINT("dsize srt client");
+    RBSRT_DEBUG_PRINT("dsize srt client");
 
     return sizeof(rbsrt_client_t);
 }
 
 void rbsrt_client_dmark(void *client)
 {
-    DEBUG_PRINT("dmark srt client");
+    RBSRT_DEBUG_PRINT("dmark srt client");
 }
 
 
@@ -2030,7 +1825,7 @@ void rbsrt_client_dmark(void *client)
 
 void rbsrt_client_deallocate(rbsrt_client_t *client)
 {
-    DEBUG_PRINT("deallocate srt client");
+    RBSRT_DEBUG_PRINT("deallocate srt client");
 
     SRT_SOCKSTATUS status = srt_getsockstate(client->socket);
 
@@ -2053,7 +1848,7 @@ void rbsrt_client_deallocate(rbsrt_client_t *client)
 
 VALUE rbsrt_client_allocate(VALUE klass)
 {
-    DEBUG_PRINT("allocate client");
+    RBSRT_DEBUG_PRINT("allocate client");
 
     rbsrt_client_t *client = malloc(sizeof(rbsrt_client_t));
 
@@ -2064,12 +1859,12 @@ VALUE rbsrt_client_allocate(VALUE klass)
 
 VALUE rbsrt_client_initialize(VALUE self)
 {
-    DEBUG_PRINT("initialize client");
+    RBSRT_DEBUG_PRINT("initialize client");
 
     RBSRT_CLIENT_UNWRAP(self, client);
 
     client->socket = srt_create_socket();
-
+    
     return self;
 }
 
@@ -2093,16 +1888,63 @@ void rbsrt_poll_dmark(void *data)
 
 void rbsrt_poll_deallocate(rbsrt_poll_t *poll)
 {
-    DEBUG_PRINT("deallocate poll");
+    RBSRT_DEBUG_PRINT("deallocate poll");
 
     srt_epoll_release(poll->epollid);
 
     free(poll);
 }
 
+int rbsrt_epoll_event_with_splat(VALUE splat, long splat_len)
+{
+    int events = 0;
+
+    for (long i = 0; i < splat_len; i++)
+    {
+        VALUE event_type = rb_ary_entry(splat, i);
+
+        ID event_id = rb_to_id(event_type);
+
+        if (event_id == rb_intern("in") || event_id == rb_intern("read"))
+        {
+            RBSRT_DEBUG_PRINT("poll add SRT_EPOLL_IN");
+            
+            events |= SRT_EPOLL_IN;
+        }
+
+        else if (event_id == rb_intern("out") || event_id == rb_intern("write"))
+        {
+            RBSRT_DEBUG_PRINT("poll add SRT_EPOLL_OUT");
+
+            events |= SRT_EPOLL_OUT;
+        }
+
+        else if (event_id == rb_intern("err") || event_id == rb_intern("error"))
+        {
+            RBSRT_DEBUG_PRINT("poll add SRT_EPOLL_ERR");
+
+            events |= SRT_EPOLL_ERR;
+        }
+
+        else if (event_id == rb_intern("et") || event_id == rb_intern("edge"))
+        {
+            RBSRT_DEBUG_PRINT("poll add SRT_EPOLL_ET");
+
+            events |= SRT_EPOLL_ET;
+        }
+
+        else
+        {
+            rb_raise(rb_eArgError, "poll event must be one of: :in, :out, :err, :edge");
+        }
+    }
+
+    return events;
+}
+
 VALUE rbsrt_poll_allocate(VALUE klass)
 {
-    DEBUG_PRINT("allocate poll");
+    RBSRT_DEBUG_PRINT("allocate poll");
 
     rbsrt_poll_t *poll = malloc(sizeof(rbsrt_poll_t));
 
@@ -2113,7 +1955,7 @@ VALUE rbsrt_poll_allocate(VALUE klass)
 
 VALUE rbsrt_poll_initialize(VALUE self)
 {
-    DEBUG_PRINT("initialize poll");
+    RBSRT_DEBUG_PRINT("initialize poll");
 
     RBSRT_POLL_UNWRAP(self, poll);
 
@@ -2128,9 +1970,29 @@ VALUE rbsrt_poll_initialize(VALUE self)
     return self;
 }
 
+VALUE rbsrt_poll_remove_socket(VALUE self, VALUE socket_to_remove)
+{
+    RBSRT_DEBUG_PRINT("poll remove socket");
+
+    RBSRT_POLL_UNWRAP(self, poll);
+
+    RBSRT_SOCKET_BASE_UNWRAP(socket_to_remove, socket);
+
+    VALUE sockets = rb_ivar_get(self, rb_intern("@sockets"));
+
+    VALUE removed_socket = rb_hash_delete(sockets, INT2FIX(socket->socket));
+
+    if (srt_epoll_remove_usock(poll->epollid, socket->socket) == SRT_ERROR)
+    {
+        rbsrt_raise_last_srt_error();
+    }
+
+    return removed_socket;
+}
+
 VALUE rbsrt_poll_add_socket(int argc, VALUE* argv, VALUE self)
 {
-    DEBUG_PRINT("poll add socket");
+    RBSRT_DEBUG_PRINT("poll add socket");
 
     RBSRT_POLL_UNWRAP(self, poll);
 
@@ -2141,48 +2003,7 @@ VALUE rbsrt_poll_add_socket(int argc, VALUE* argv, VALUE self)
 
     RBSRT_SOCKET_BASE_UNWRAP(arg1, socket);
 
-    long splat_len = rb_array_len(splat);
-    int events = 0;
-
-    for (long i = 0; i < splat_len; i++)
-    {
-        VALUE event_type = rb_ary_entry(splat, i);
-
-        ID event_id = rb_to_id(event_type);
-
-        if (event_id == rb_intern("in") || event_id == rb_intern("read"))
-        {
-            DEBUG_PRINT("poll add SRT_EPOLL_IN");
-            
-            events |= SRT_EPOLL_IN;
-        }
-
-        else if (event_id == rb_intern("out") || event_id == rb_intern("write"))
-        {
-            DEBUG_PRINT("poll add SRT_EPOLL_OUT");
-
-            events |= SRT_EPOLL_OUT;
-        }
-
-        else if (event_id == rb_intern("err") || event_id == rb_intern("error"))
-        {
-            DEBUG_PRINT("poll add SRT_EPOLL_ERR");
-
-            events |= SRT_EPOLL_ERR;
-        }
-
-        else if (event_id == rb_intern("et") || event_id == rb_intern("edge"))
-        {
-            DEBUG_PRINT("poll add SRT_EPOLL_ET");
-
-            events |= SRT_EPOLL_ET;
-        }
-
-        else
-        {
-            rb_raise(rb_eArgError, "poll event must be one of: :in, :out, :err, :edge");
-        }
-    }
+    int events = rbsrt_epoll_event_with_splat(splat, rb_array_len(splat));
 
     if (srt_epoll_add_usock(poll->epollid, socket->socket, &events) == SRT_ERROR)
     {
@@ -2194,6 +2015,29 @@ VALUE rbsrt_poll_add_socket(int argc, VALUE* argv, VALUE self)
     rb_hash_aset(sockets, INT2FIX(socket->socket), arg1);
 
     return self;
+}
+
+VALUE rbsrt_poll_update_socket(int argc, VALUE* argv, VALUE self)
+{
+    RBSRT_DEBUG_PRINT("poll update socket");
+
+    RBSRT_POLL_UNWRAP(self, poll);
+
+    VALUE arg1;
+    VALUE splat;
+
+    rb_scan_args(argc, argv, "1*", &arg1, &splat);
+
+    int events = rbsrt_epoll_event_with_splat(splat, rb_array_len(splat));
+
+    RBSRT_SOCKET_BASE_UNWRAP(arg1, socket);
+
+    if (srt_epoll_update_usock(poll->epollid, socket->socket, &events) == SRT_ERROR)
+    {
+        rbsrt_raise_last_srt_error();
+    }
+
+    return Qnil;
 }
 
 typedef struct RBSRTPollWaitArg
@@ -2216,7 +2060,7 @@ void *rbsrt_poll_wait_without_gvl(void *context)
 
 VALUE rbsrt_poll_wait(int argc, VALUE* argv, VALUE self)
 {
-    DEBUG_PRINT("poll wait");
+    RBSRT_DEBUG_PRINT("poll wait");
 
     RBSRT_POLL_UNWRAP(self, poll);
 
@@ -2241,9 +2085,8 @@ VALUE rbsrt_poll_wait(int argc, VALUE* argv, VALUE self)
     
     VALUE sockets = rb_ivar_get(self, rb_intern("@sockets"));
     int num_sockets = FIX2INT(rb_hash_size(sockets));
-    VALUE sock;
 
-    SRT_EPOLL_EVENT events[num_sockets < 8 ? 8 : num_sockets];
+    SRT_EPOLL_EVENT events[num_sockets < 8 ? 8 : num_sockets + 8];
 
     VALUE readables = rb_ary_new();
     VALUE writables = rb_ary_new();
@@ -2259,7 +2102,7 @@ VALUE rbsrt_poll_wait(int argc, VALUE* argv, VALUE self)
 
     rb_thread_call_without_gvl(rbsrt_poll_wait_without_gvl, &arg, RUBY_UBF_IO, NULL);
 
-    DEBUG_PRINT("poll did wait");
+    RBSRT_DEBUG_PRINT("poll did wait");
 
     for (int i = 0; i < arg.num_events; i++)
     {
@@ -2269,7 +2112,7 @@ VALUE rbsrt_poll_wait(int argc, VALUE* argv, VALUE self)
 
         if (!RTEST(sock))
         {
-            DEBUG_PRINT("poll matched socket not in socket list");
+            RBSRT_DEBUG_PRINT("poll matched socket not in socket list");
 
             // TODO: remove unknown socket
 
@@ -2278,21 +2121,21 @@ VALUE rbsrt_poll_wait(int argc, VALUE* argv, VALUE self)
 
         if (event->events & SRT_EPOLL_IN)
         {
-            DEBUG_PRINT("poll add readables");
+            RBSRT_DEBUG_PRINT("poll add readables");
 
             rb_ary_push(readables, sock);
         }
 
         if (event->events & SRT_EPOLL_OUT)
         {
-            DEBUG_PRINT("poll add writables");
+            RBSRT_DEBUG_PRINT("poll add writables");
 
             rb_ary_push(writables, sock);
         }
 
        if (event->events & SRT_EPOLL_ERR)
        {
-           DEBUG_PRINT("poll add error");
+           RBSRT_DEBUG_PRINT("poll add error");
 
            rb_ary_push(errors, sock);
        }
@@ -2410,8 +2253,14 @@ void Init_rbsrt()
 
     rb_define_method(mSRTPollKlass, "initialize", rbsrt_poll_initialize, 0);
     rb_define_method(mSRTPollKlass, "add", rbsrt_poll_add_socket, -1);
+    rb_define_method(mSRTPollKlass, "update", rbsrt_poll_update_socket, -1);
+    rb_define_method(mSRTPollKlass, "remove", rbsrt_poll_remove_socket, 1);
     rb_define_method(mSRTPollKlass, "wait", rbsrt_poll_wait, -1);
 
+
+    // Init Stats
+
+    RBSRT_stat_init(mSRTModule);
 
     // Startup SRT
 

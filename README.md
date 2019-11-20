@@ -6,19 +6,7 @@ A ruby gem which you can use to build [SRT (Secure Reliable Transport)](https://
 > 
 > From: Haivision
 
-Ruby SRT is a Work in Progress:
-
-- [x] Server
-  - [ ] Send Stream
-  - [x] Receive Stream
-  - [ ] Send File
-  - [ ] Receive File
-- [x] Client
-  - [x] Send Stream
-  - [ ] Receive Stream
-  - [ ] Send File
-  - [ ] Receive File
-- [ ] SRT Socket
+Ruby SRT is a Work in Progress, please [create an issue if you find any bugs, leaks, or would like to request additional API](https://github.com/spllr/rbsrt/issues).
 
 
 ## Table Of Contents
@@ -41,7 +29,9 @@ Ruby SRT is a Work in Progress:
     - [`SRT::Server` Class](#srtserver-class)
     - [`SRT::Connection` Class](#srtconnection-class)
     - [`SRT::Client` Class](#srtclient-class)
+    - [`SRT::Poll` Class](#srtpoll-class)
     - [`SRT::StreamIDComponents` Class](#srtstreamidcomponents-class)
+    - [`SRT::Stats` Class](#srtstats-class)
     - [`SRT::Error` Classes](#srterror-classes)
   - [License](#license)
 
@@ -290,13 +280,14 @@ The Ruby SRT gem comes with the following items:
 
 |  Item | Kind | Description |
 |-------|------|-------------|
-|  SRT | Module  | The root module  |
-|  SRT::Socket | Class  | A general purpose SRT Socket |
-|  SRT::Server | Class  | A multi-client SRT Server |
-|  SRT::Connection | Class  | Used by SRT::Server to represent a client |
-|  SRT::Client | Class  | A SRT Client |
-|  SRT::StreamIDComponents | Class  | SRT Access Control complient streamid parser and compiler  |
-|  SRT::Error | Class | The base class for a number of SRT specific errors |
+|  `SRT` | Module  | The root module  |
+|  `SRT::Socket` | Class  | A general purpose SRT Socket |
+|  `SRT::Server` | Class  | A multi-client SRT Server |
+|  `SRT::Connection` | Class  | Used by SRT::Server to represent a client |
+|  `SRT::Client` | Class  | A SRT Client |
+|  `SRT::Stats` | Class | Used to obtain statistics from a socket |
+|  `SRT::StreamIDComponents` | Class  | SRT Access Control complient streamid parser and compiler  |
+|  `SRT::Error` | Class | The base class for a number of SRT specific errors |
 
 
 ### `SRT` Module
@@ -469,6 +460,61 @@ Instances of `SRT::Client` support the following methods and attributes:
 | #write_sync? | Any | True when the socket is writable in a non-blocking manner |
 
 
+### `SRT::Poll` Class
+
+The `SRT::Poll` class provides a way to handle multiple sockets simultaneously. It's function is similar to `IO.select`.
+
+For example, you could have create a multi-client server using `SRT::Poll`:
+
+```ruby
+  require "rbsrt"
+
+  server = SRT::Socket.new
+
+  server = SRT::Socket.new
+  server.bind "0.0.0.0", "6789"
+  server.listen 3
+
+  poll = SRT::Poll.new
+
+  poll.add server, :in
+
+  loop do
+    poll.wait do |readable, writable, errors|
+      readable.each do |socket|
+        if socket == server
+          client = socket.accept            # accept new client
+          poll.add client, :in, :out, :err  # add client to the poll
+          puts "accepted client"
+        else
+          data = socket.recvmsg             # read data from a client
+          puts "received data"
+          poll.remote socket unless data    # remove client from the poll
+        end
+      end
+    end
+  end
+```
+
+`SRT::Poll` supports the following actions: 
+
+| Name | Alias | Description |
+|--|--|--|
+| `:in` | `:read` |  report readiness for reading or incoming connection on a listener socket |
+| `:out` | `:write` | report readiness for writing or a successful connection |
+| `:err` | `:error` | report errors on the socket |
+| `:et` | `:edge` | the event will be edge-triggered. In the edge-triggered mode the function will only return socket states that have changed since the last call. |
+
+Instances of `SRT::Poll` supports the following methods:
+
+| Name | Kind | Description |
+|------|------|-------------|
+| `#add(sock, *flags)` | Bool | Add a socket to the Poll |
+| `#remove(sock)` | Socket | Remove a socket from the Poll |
+| `#update(sock, *flags)` | Update the flags for the socket |
+
+For more info see the [Asynchronous Operations Epoll](https://github.com/Haivision/srt/blob/master/docs/API-functions.md#Asynchronous-operations-epoll "Asynchronous-operations-epoll") section in the SRT docs.
+
 ### `SRT::StreamIDComponents` Class
 
 SRT provides a [Access Control Guideline](https://github.com/Haivision/srt/blob/master/docs/AccessControl.md "SRT Access Control Guidelines") allowing a more fine grained method of specifying the intent of connection. Using the "#streamid" clients and servers can pack a number of properties on the socket.
@@ -554,6 +600,101 @@ streamid = SRT::StreamIDComponents.new :mode => :publish,
                                        :host_name => "stream.recce.nl",
                                        :some_custom_property => "somevalue"
 ```
+
+### `SRT::Stats` Class
+
+The `SRT::Stats` class can be used to pull statistics from a `SRT::Socket`.
+
+```ruby
+stats = SRT::Stats.new my_socket_or_connection_or_server
+
+puts stats.pkt_sent_total
+```
+
+The initializer takes a srt socket like instance and an optional `:clear => true/false` flag.
+
+See https://github.com/Haivision/srt/blob/master/docs/statistics.md for more information about all the field.
+
+
+Instances of `SRT::Stats` have the following properties:
+
+
+| Name 	| Alias | Description |
+|-----|---|---|
+| `#msTimeStamp` |  `#ms_time_stamp`,  `#mstimestamp` |   time since the UDT entity is started, in milliseconds |
+| `#pktSentTotal` |  `#pkt_sent_total`,  `#pktsenttotal` |   total number of sent data packets, including retransmissions |
+| `#pktRecvTotal` |  `#pkt_recv_total`,  `#pktrecvtotal` |   total number of received packets |
+| `#pktSndLossTotal` |  `#pkt_snd_loss_total`,  `#pktsndlosstotal` |   total number of lost packets (sender side) |
+| `#pktRcvLossTotal` |  `#pkt_rcv_loss_total`,  `#pktrcvlosstotal` |   total number of lost packets (receiver side) |
+| `#pktRetransTotal` |  `#pkt_retrans_total`,  `#pktretranstotal` |   total number of retransmitted packets |
+| `#pktSentACKTotal` |  `#pkt_sent_ack_total`,  `#pktsentacktotal` |   total number of sent ACK packets |
+| `#pktRecvACKTotal` |  `#pkt_recv_ack_total`,  `#pktrecvacktotal` |   total number of received ACK packets |
+| `#pktSentNAKTotal` |  `#pkt_sent_nak_total`,  `#pktsentnaktotal` |   total number of sent NAK packets |
+| `#pktRecvNAKTotal` |  `#pkt_recv_nak_total`,  `#pktrecvnaktotal` |   total number of received NAK packets |
+| `#usSndDurationTotal` |  `#us_snd_duration_total`,  `#ussnddurationtotal` |   total time duration when UDT is sending data (idle time exclusive) |
+| `#pktSndDropTotal` |  `#pkt_snd_drop_total`,  `#pktsnddroptotal` |   number of too-late-to-send dropped packets |
+| `#pktRcvDropTotal` |  `#pkt_rcv_drop_total`,  `#pktrcvdroptotal` |   number of too-late-to play missing packets |
+| `#pktRcvUndecryptTotal` |  `#pkt_rcv_undecrypt_total`,  `#pktrcvundecrypttotal` |   number of undecrypted packets |
+| `#pktSndFilterExtraTotal` |  `#pkt_snd_filter_extra_total`,  `#pktsndfilterextratotal` |   number of control packets supplied by packet filter |
+| `#pktRcvFilterExtraTotal` |  `#pkt_rcv_filter_extra_total`,  `#pktrcvfilterextratotal` |   number of control packets received and not supplied back |
+| `#pktRcvFilterSupplyTotal` |  `#pkt_rcv_filter_supply_total`,  `#pktrcvfiltersupplytotal` |   number of packets that the filter supplied extra (e.g. FEC rebuilt) |
+| `#pktRcvFilterLossTotal` |  `#pkt_rcv_filter_loss_total`,  `#pktrcvfilterlosstotal` |   number of packet loss not coverable by filter |
+| `#byteSentTotal` |  `#byte_sent_total`,  `#bytesenttotal` |   total number of sent data bytes, including retransmissions |
+| `#byteRecvTotal` |  `#byte_recv_total`,  `#byterecvtotal` |   total number of received bytes |
+| `#byteRcvLossTotal` |  `#byte_rcv_loss_total`,  `#bytercvlosstotal` |   total number of lost bytes SRT_ENABLE_LOSTBYTESCOUNT |
+| `#byteRetransTotal` |  `#byte_retrans_total`,  `#byteretranstotal` |   total number of retransmitted bytes |
+| `#byteSndDropTotal` |  `#byte_snd_drop_total`,  `#bytesnddroptotal` |   number of too-late-to-send dropped bytes |
+| `#byteRcvDropTotal` |  `#byte_rcv_drop_total`,  `#bytercvdroptotal` |   number of too-late-to play missing bytes (estimate based on average packet size) |
+| `#byteRcvUndecryptTotal` |  `#byte_rcv_undecrypt_total`,  `#bytercvundecrypttotal` |   number of undecrypted bytes |
+| `#pktSent` |  `#pkt_sent`,  `#pktsent` |   number of sent data packets, including retransmissions |
+| `#pktRecv` |  `#pkt_recv`,  `#pktrecv` |   number of received packets |
+| `#pktSndLoss` |  `#pkt_snd_loss`,  `#pktsndloss` |   number of lost packets (sender side) |
+| `#pktRcvLoss` |  `#pkt_rcv_loss`,  `#pktrcvloss` |   number of lost packets (receiver side) |
+| `#pktRetrans` |  `#pkt_retrans`,  `#pktretrans` |   number of retransmitted packets |
+| `#pktRcvRetrans` |  `#pkt_rcv_retrans`,  `#pktrcvretrans` |   number of retransmitted packets received |
+| `#pktSentACK` |  `#pkt_sent_ack`,  `#pktsentack` |   number of sent ACK packets |
+| `#pktRecvACK` |  `#pkt_recv_ack`,  `#pktrecvack` |   number of received ACK packets |
+| `#pktSentNAK` |  `#pkt_sent_nak`,  `#pktsentnak` |   number of sent NAK packets |
+| `#pktRecvNAK` |  `#pkt_recv_nak`,  `#pktrecvnak` |   number of received NAK packets |
+| `#pktSndFilterExtra` |  `#pkt_snd_filter_extra`,  `#pktsndfilterextra` |   number of control packets supplied by packet filter |
+| `#pktRcvFilterExtra` |  `#pkt_rcv_filter_extra`,  `#pktrcvfilterextra` |   number of control packets received and not supplied back |
+| `#pktRcvFilterSupply` |  `#pkt_rcv_filter_supply`,  `#pktrcvfiltersupply` |   number of packets that the filter supplied extra (e.g. FEC rebuilt) |
+| `#pktRcvFilterLoss` |  `#pkt_rcv_filter_loss`,  `#pktrcvfilterloss` |   number of packet loss not coverable by filter |
+| `#mbpsSRate` |  `#mbps_s_rate`,  `#mbpssrate` |   sending rate in Mb/s |
+| `#mbpsRecvRate` |  `#mbps_recv_rate`,  `#mbpsrecvrate` |   receiving rate in Mb/s |
+| `#usSndDuration` |  `#us_snd_duration`,  `#ussndduration` |   busy sending time (i.e., idle time exclusive) |
+| `#pktReorderDistance` |  `#pkt_reorder_distance`,  `#pktreorderdistance` |   size of order discrepancy in received sequences |
+| `#pktRcvAvgBelatedTime` |  `#pkt_rcv_avg_belated_time`,  `#pktrcvavgbelatedtime` |   average time of packet delay for belated packets (packets with sequence past the ACK) |
+| `#pktRcvBelated` |  `#pkt_rcv_belated`,  `#pktrcvbelated` |   number of received AND IGNORED packets due to having come too late |
+| `#pktSndDrop` |  `#pkt_snd_drop`,  `#pktsnddrop` |   number of too-late-to-send dropped packets |
+| `#pktRcvDrop` |  `#pkt_rcv_drop`,  `#pktrcvdrop` |   number of too-late-to play missing packets |
+| `#pktRcvUndecrypt` |  `#pkt_rcv_undecrypt`,  `#pktrcvundecrypt` |   number of undecrypted packets |
+| `#byteSent` |  `#byte_sent`,  `#bytesent` |   number of sent data bytes, including retransmissions |
+| `#byteRecv` |  `#byte_recv`,  `#byterecv` |   number of received bytes |
+| `#byteRcvLoss` |  `#byte_rcv_loss`,  `#bytercvloss` |   number of retransmitted bytes SRT_ENABLE_LOSTBYTESCOUNT |
+| `#byteRetrans` |  `#byte_retrans`,  `#byteretrans` |   number of retransmitted bytes |
+| `#byteSndDrop` |  `#byte_snd_drop`,  `#bytesnddrop` |   number of too-late-to-send dropped bytes |
+| `#byteRcvDrop` |  `#byte_rcv_drop`,  `#bytercvdrop` |   number of too-late-to play missing bytes (estimate based on average packet size) |
+| `#byteRcvUndecrypt` |  `#byte_rcv_undecrypt`,  `#bytercvundecrypt` |   number of undecrypted bytes |
+| `#usPktSndPeriod` |  `#us_pkt_snd_period`,  `#uspktsndperiod` |   packet sending period, in microseconds |
+| `#pktFlowWindow` |  `#pkt_flow_window`,  `#pktflowwindow` |   flow window size, in number of packets |
+| `#pktCongestionWindow` |  `#pkt_congestion_window`,  `#pktcongestionwindow` |   congestion window size, in number of packets |
+| `#pktFlightSize` |  `#pkt_flight_size`,  `#pktflightsize` |   number of packets on flight |
+| `#msRTT` |  `#ms_rtt`,  `#msrtt` |   RTT, in milliseconds |
+| `#mbpsBandwidth` |  `#mbps_bandwidth`,  `#mbpsbandwidth` |   estimated bandwidth, in Mb/s |
+| `#byteAvailSndBuf` |  `#byte_avail_snd_buf`,  `#byteavailsndbuf` |   available UDT sender buffer size |
+| `#byteAvailRcvBuf` |  `#byte_avail_rcv_buf`,  `#byteavailrcvbuf` |   available UDT receiver buffer size |
+| `#mbpsMaxBW` |  `#mbps_max_bw`,  `#mbpsmaxbw` |   Transmit Bandwidth ceiling (Mbps) |
+| `#byteMSS` |  `#byte_mss`,  `#bytemss` |   MTU |
+| `#pktSndBuf` |  `#pkt_snd_buf`,  `#pktsndbuf` |   UnACKed packets in UDT sender |
+| `#byteSndBuf` |  `#byte_snd_buf`,  `#bytesndbuf` |   UnACKed bytes in UDT sender |
+| `#msSndBuf` |  `#ms_snd_buf`,  `#mssndbuf` |   UnACKed timespan (msec) of UDT sender |
+| `#msSndTsbPdDelay` |  `#ms_snd_tsb_pd_delay`,  `#mssndtsbpddelay` |   Timestamp-based Packet Delivery Delay |
+| `#pktRcvBuf` |  `#pkt_rcv_buf`,  `#pktrcvbuf` |   Undelivered packets in UDT receiver |
+| `#byteRcvBuf` |  `#byte_rcv_buf`,  `#bytercvbuf` |   Undelivered bytes of UDT receiver |
+| `#msRcvBuf` |  `#ms_rcv_buf`,  `#msrcvbuf` |   Undelivered timespan (msec) of UDT receiver |
+| `#msRcvTsbPdDelay` |  `#ms_rcv_tsb_pd_delay`,  `#msrcvtsbpddelay` |   Timestamp-based Packet Delivery Delay |
+
 
 ### `SRT::Error` Classes
 
