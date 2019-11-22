@@ -277,5 +277,41 @@ describe SRT::StreamIDComponents do
       s.baz.must_equal "bar"
     end
   end
+
+  describe "#to_h" do
+    let(:streamid) { "#!::r=foobar,u=admin,h=stream.recce.nl,s=12345,t=stream,m=publish,foo=bar" }
+
+    let(:parser) { 
+      SRT::StreamIDComponents.new(streamid)
+    }
+
+    it "stores the 'r' as the :resource_name" do
+      parser.to_h[:resource_name].must_equal "foobar"
+    end
+
+    it "stores the 'u' var to :user_name" do
+      parser.to_h[:user_name].must_equal "admin"
+    end
+
+    it "stores the 'm' var to :mode" do
+      parser.to_h[:mode].must_equal :publish
+    end
+
+    it "stores the 'h' to :host_name" do
+      parser.to_h[:host_name].must_equal "stream.recce.nl"
+    end
+
+    it "stores the 't' var to :type" do
+      parser.to_h[:type].must_equal :stream
+    end
+
+    it "stores the 's' var to :sessionid" do
+      parser.to_h[:sessionid].must_equal "12345"
+    end
+
+    it "stores extra attributes when available" do
+      parser.to_h["foo"].must_equal "bar"
+    end
+  end
 end
 

@@ -58,6 +58,23 @@ module SRT
       streamid + vars.join(",")
     end
 
+    def to_h
+      h = {}
+
+      @extra.each do |key, value|
+        h[key] = value
+      end
+
+      h[:resource_name] = resource_name if resource_name
+      h[:user_name] = user_name if user_name
+      h[:mode] = mode if mode
+      h[:host_name] = host_name if host_name
+      h[:type] = type if type
+      h[:sessionid] = sessionid if sessionid
+      
+      return h
+    end
+
     def method_missing(name, *args)
       return extra[name.to_s] if extra.key? name.to_s
       match = name.to_s.match(/^(.*?)(=?)$/)

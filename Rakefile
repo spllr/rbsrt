@@ -16,7 +16,10 @@ task :default => :test
 #   sh "make"
 # end
 
-require 'rake/extensiontask'
+desc "Open an irb session with rbsrt library"
+task :console do
+  sh "irb  -r ./lib/rbsrt.rb"
+end
 
 Rake::ExtensionTask.new 'rbsrt' do |ext|
   ext.lib_dir = "lib/rbsrt"
