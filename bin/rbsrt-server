@@ -53,11 +53,11 @@ puts "starting server"
 server.start do |connection|
   puts "new connection: connections=#{connection_count}, id=#{connection.id}, streamid=#{connection.streamid}"
 
-  output_file = File.new "recording-#{Process.pid}-#{connection.id}.ts", "w+"
+  output_file_path = File.join options.recording_path, "recording-#{Process.pid}-#{connection.id}.ts"
+  output_file = File.new output_file_path, "w+"
   output_file.close_on_exec = true
 
   connection.at_data do |chunk|
-    puts "data"
     output_file.write(chunk)
   end
 
