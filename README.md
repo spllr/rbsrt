@@ -70,9 +70,23 @@ Install:
 
 ```
 cd rbsrt
+bundle install
 rake install
 ```
 
+It is possible to provide some information about the location of your srt installation by providing one or more of the following environment variables:
+
+```sh
+RBSRT_LIBSRT_HOME    # a path to the install directory of srt containing the lib and include dirs
+RBSRT_LIBSRT_LIB_DIR # a path to the directory containing libsrt
+RBSRT_LIBSRT_INCLUDE_DIR # a path to the directory containing libsrt headers
+```
+
+For example, you could use the your local srt development repo: 
+
+```
+RBSRT_LIBSRT_HOME="/home/me/code/srt/.build" rake install
+```
 
 ## Examples
 

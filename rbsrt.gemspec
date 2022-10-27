@@ -19,4 +19,5 @@ Gem::Specification.new do |s|
   s.extensions  = %w[ext/rbsrt/extconf.rb]
   s.required_ruby_version = ">= 2.2.0"
   s.add_development_dependency "rake-compiler", "~> 1.0"
+  s.add_development_dependency "gem-release", "~> 2.2"
 end

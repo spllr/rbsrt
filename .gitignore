@@ -3,3 +3,6 @@
 *.bundle
 Makefile
 .vscode
+.tool-versions
+pkg/
+tmp/

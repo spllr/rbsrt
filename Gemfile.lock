@@ -1,0 +1,23 @@
+PATH
+  remote: .
+  specs:
+    rbsrt (0.1.2)
+
+GEM
+  remote: http://rubygems.org/
+  specs:
+    gem-release (2.2.2)
+    rake (13.0.6)
+    rake-compiler (1.2.0)
+      rake
+
+PLATFORMS
+  arm64-darwin-21
+
+DEPENDENCIES
+  gem-release (~> 2.2)
+  rake-compiler (~> 1.0)
+  rbsrt!
+
+BUNDLED WITH
+   2.2.32
