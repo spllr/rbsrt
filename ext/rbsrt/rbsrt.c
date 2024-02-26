@@ -882,7 +882,6 @@ VALUE rbsrt_socket_recvmsg(VALUE self)
 
     VALUE data = rb_str_buf_new((long)nbytes);
     rb_str_buf_cat(data, buf, (long)nbytes);
-    rb_obj_taint(data);
 
     return data;
 }
@@ -1012,7 +1011,6 @@ VALUE rbsrt_socket_get_streamid(VALUE self)
 
     VALUE result = rb_str_buf_new((long)streamid_len);
     rb_str_buf_cat(result, streamid, (long)streamid_len);
-    rb_obj_taint(result);
 
     return result;
 }
