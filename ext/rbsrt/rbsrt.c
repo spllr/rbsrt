@@ -56,27 +56,6 @@
 #include "rbstats.h"
 
 
-// MARK: Network
-
-int resolve_address(struct addrinfo *res, char host[], char port[])
-{
-    struct addrinfo hints;
-    
-    memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_DGRAM;
-
-    int status;
-
-    if ((status = getaddrinfo(host, port, &hints, &res)) != 0)
-    {
-        DEBUG_ERROR_PRINT("getaddrinfo: %s", gai_strerror(status));
-        
-        return RBSRT_FAILURE;
-    }
-
-    return RBSRT_SUCCESS;
-}
 
 void *get_in_addr(struct sockaddr *sa)
 {
@@ -348,43 +327,43 @@ void rbsrt_init_errors()
 
     // Error Types
 
-    rbstr_eUNKNOWNError					= rb_define_class_under(rb_eStandardError, "UNKNOWN", rbsrt_eStandardError);
-    rbstr_eCONNSETUPError				= rb_define_class_under(rb_eStandardError, "CONNSETUP", rbsrt_eStandardError);
-    rbstr_eNOSERVERError				= rb_define_class_under(rb_eStandardError, "NOSERVER", rbsrt_eStandardError);
-    rbstr_eCONNREJError					= rb_define_class_under(rb_eStandardError, "CONNREJ", rbsrt_eStandardError);
-    rbstr_eSOCKFAILError				= rb_define_class_under(rb_eStandardError, "SOCKFAIL", rbsrt_eStandardError);
-    rbstr_eSECFAILError					= rb_define_class_under(rb_eStandardError, "SECFAIL", rbsrt_eStandardError);
-    rbstr_eCONNFAILError				= rb_define_class_under(rb_eStandardError, "CONNFAIL", rbsrt_eStandardError);
-    rbstr_eCONNLOSTError				= rb_define_class_under(rb_eStandardError, "CONNLOST", rbsrt_eStandardError);
-    rbstr_eNOCONNError					= rb_define_class_under(rb_eStandardError, "NOCONN", rbsrt_eStandardError);
-    rbstr_eRESOURCEError				= rb_define_class_under(rb_eStandardError, "RESOURCE", rbsrt_eStandardError);
-    rbstr_eTHREADError					= rb_define_class_under(rb_eStandardError, "THREAD", rbsrt_eStandardError);
-    rbstr_eNOBUFError					= rb_define_class_under(rb_eStandardError, "NOBUF", rbsrt_eStandardError);
-    rbstr_eFILEError					= rb_define_class_under(rb_eStandardError, "FILE", rbsrt_eStandardError);
-    rbstr_eINVRDOFFError				= rb_define_class_under(rb_eStandardError, "INVRDOFF", rbsrt_eStandardError);
-    rbstr_eRDPERMError					= rb_define_class_under(rb_eStandardError, "RDPERM", rbsrt_eStandardError);
-    rbstr_eINVWROFFError				= rb_define_class_under(rb_eStandardError, "INVWROFF", rbsrt_eStandardError);
-    rbstr_eWRPERMError					= rb_define_class_under(rb_eStandardError, "WRPERM", rbsrt_eStandardError);
-    rbstr_eINVOPError					= rb_define_class_under(rb_eStandardError, "INVOP", rbsrt_eStandardError);
-    rbstr_eBOUNDSOCKError				= rb_define_class_under(rb_eStandardError, "BOUNDSOCK", rbsrt_eStandardError);
-    rbstr_eCONNSOCKError				= rb_define_class_under(rb_eStandardError, "CONNSOCK", rbsrt_eStandardError);
-    rbstr_eINVPARAMError				= rb_define_class_under(rb_eStandardError, "INVPARAM", rbsrt_eStandardError);
-    rbstr_eINVSOCKError					= rb_define_class_under(rb_eStandardError, "INVSOCK", rbsrt_eStandardError);
-    rbstr_eUNBOUNDSOCKError			    = rb_define_class_under(rb_eStandardError, "UNBOUNDSOCK", rbsrt_eStandardError);
-    rbstr_eNOLISTENError				= rb_define_class_under(rb_eStandardError, "NOLISTEN", rbsrt_eStandardError);
-    rbstr_eRDVNOSERVError				= rb_define_class_under(rb_eStandardError, "RDVNOSERV", rbsrt_eStandardError);
-    rbstr_eRDVUNBOUNDError			    = rb_define_class_under(rb_eStandardError, "RDVUNBOUND", rbsrt_eStandardError);
-    rbstr_eINVALMSGAPIError			    = rb_define_class_under(rb_eStandardError, "INVALMSGAPI", rbsrt_eStandardError);
-    rbstr_eINVALBUFFERAPIError	        = rb_define_class_under(rb_eStandardError, "INVALBUFFERAPI", rbsrt_eStandardError);
-    rbstr_eDUPLISTENError				= rb_define_class_under(rb_eStandardError, "DUPLISTEN", rbsrt_eStandardError);
-    rbstr_eLARGEMSGError				= rb_define_class_under(rb_eStandardError, "LARGEMSG", rbsrt_eStandardError);
-    rbstr_eINVPOLLIDError				= rb_define_class_under(rb_eStandardError, "INVPOLLID", rbsrt_eStandardError);
-    rbstr_eASYNCFAILError				= rb_define_class_under(rb_eStandardError, "ASYNCFAIL", rbsrt_eStandardError);
-    rbstr_eASYNCSNDError				= rb_define_class_under(rb_eStandardError, "ASYNCSND", rbsrt_eStandardError);
-    rbstr_eASYNCRCVError				= rb_define_class_under(rb_eStandardError, "ASYNCRCV", rbsrt_eStandardError);
-    rbstr_eTIMEOUTError					= rb_define_class_under(rb_eStandardError, "TIMEOUT", rbsrt_eStandardError);
-    rbstr_eCONGESTError					= rb_define_class_under(rb_eStandardError, "CONGEST", rbsrt_eStandardError);
-    rbstr_ePEERERRError					= rb_define_class_under(rb_eStandardError, "PEERERR", rbsrt_eStandardError);
+    rbstr_eUNKNOWNError					= rb_define_class_under(mSRTModule, "UNKNOWN", rbsrt_eStandardError);
+    rbstr_eCONNSETUPError				= rb_define_class_under(mSRTModule, "CONNSETUP", rbsrt_eStandardError);
+    rbstr_eNOSERVERError				= rb_define_class_under(mSRTModule, "NOSERVER", rbsrt_eStandardError);
+    rbstr_eCONNREJError					= rb_define_class_under(mSRTModule, "CONNREJ", rbsrt_eStandardError);
+    rbstr_eSOCKFAILError				= rb_define_class_under(mSRTModule, "SOCKFAIL", rbsrt_eStandardError);
+    rbstr_eSECFAILError					= rb_define_class_under(mSRTModule, "SECFAIL", rbsrt_eStandardError);
+    rbstr_eCONNFAILError				= rb_define_class_under(mSRTModule, "CONNFAIL", rbsrt_eStandardError);
+    rbstr_eCONNLOSTError				= rb_define_class_under(mSRTModule, "CONNLOST", rbsrt_eStandardError);
+    rbstr_eNOCONNError					= rb_define_class_under(mSRTModule, "NOCONN", rbsrt_eStandardError);
+    rbstr_eRESOURCEError				= rb_define_class_under(mSRTModule, "RESOURCE", rbsrt_eStandardError);
+    rbstr_eTHREADError					= rb_define_class_under(mSRTModule, "THREAD", rbsrt_eStandardError);
+    rbstr_eNOBUFError					= rb_define_class_under(mSRTModule, "NOBUF", rbsrt_eStandardError);
+    rbstr_eFILEError					= rb_define_class_under(mSRTModule, "FILE", rbsrt_eStandardError);
+    rbstr_eINVRDOFFError				= rb_define_class_under(mSRTModule, "INVRDOFF", rbsrt_eStandardError);
+    rbstr_eRDPERMError					= rb_define_class_under(mSRTModule, "RDPERM", rbsrt_eStandardError);
+    rbstr_eINVWROFFError				= rb_define_class_under(mSRTModule, "INVWROFF", rbsrt_eStandardError);
+    rbstr_eWRPERMError					= rb_define_class_under(mSRTModule, "WRPERM", rbsrt_eStandardError);
+    rbstr_eINVOPError					= rb_define_class_under(mSRTModule, "INVOP", rbsrt_eStandardError);
+    rbstr_eBOUNDSOCKError				= rb_define_class_under(mSRTModule, "BOUNDSOCK", rbsrt_eStandardError);
+    rbstr_eCONNSOCKError				= rb_define_class_under(mSRTModule, "CONNSOCK", rbsrt_eStandardError);
+    rbstr_eINVPARAMError				= rb_define_class_under(mSRTModule, "INVPARAM", rbsrt_eStandardError);
+    rbstr_eINVSOCKError					= rb_define_class_under(mSRTModule, "INVSOCK", rbsrt_eStandardError);
+    rbstr_eUNBOUNDSOCKError			    = rb_define_class_under(mSRTModule, "UNBOUNDSOCK", rbsrt_eStandardError);
+    rbstr_eNOLISTENError				= rb_define_class_under(mSRTModule, "NOLISTEN", rbsrt_eStandardError);
+    rbstr_eRDVNOSERVError				= rb_define_class_under(mSRTModule, "RDVNOSERV", rbsrt_eStandardError);
+    rbstr_eRDVUNBOUNDError			    = rb_define_class_under(mSRTModule, "RDVUNBOUND", rbsrt_eStandardError);
+    rbstr_eINVALMSGAPIError			    = rb_define_class_under(mSRTModule, "INVALMSGAPI", rbsrt_eStandardError);
+    rbstr_eINVALBUFFERAPIError	        = rb_define_class_under(mSRTModule, "INVALBUFFERAPI", rbsrt_eStandardError);
+    rbstr_eDUPLISTENError				= rb_define_class_under(mSRTModule, "DUPLISTEN", rbsrt_eStandardError);
+    rbstr_eLARGEMSGError				= rb_define_class_under(mSRTModule, "LARGEMSG", rbsrt_eStandardError);
+    rbstr_eINVPOLLIDError				= rb_define_class_under(mSRTModule, "INVPOLLID", rbsrt_eStandardError);
+    rbstr_eASYNCFAILError				= rb_define_class_under(mSRTModule, "ASYNCFAIL", rbsrt_eStandardError);
+    rbstr_eASYNCSNDError				= rb_define_class_under(mSRTModule, "ASYNCSND", rbsrt_eStandardError);
+    rbstr_eASYNCRCVError				= rb_define_class_under(mSRTModule, "ASYNCRCV", rbsrt_eStandardError);
+    rbstr_eTIMEOUTError					= rb_define_class_under(mSRTModule, "TIMEOUT", rbsrt_eStandardError);
+    rbstr_eCONGESTError					= rb_define_class_under(mSRTModule, "CONGEST", rbsrt_eStandardError);
+    rbstr_ePEERERRError					= rb_define_class_under(mSRTModule, "PEERERR", rbsrt_eStandardError);
 
 
     // Error Codes
@@ -453,25 +432,25 @@ void rbsrt_srt_cleanup(ruby_vm_t *vm)
 
 // MARK: Socket State
 
-#define RBSRT_SOCKET_STATE_READY_ID		    rb_intern("ready")
-#define RBSRT_SOCKET_STATE_OPENED_ID		rb_intern("opened")
-#define RBSRT_SOCKET_STATE_LISTENING_ID		rb_intern("listening")
-#define RBSRT_SOCKET_STATE_CONNECTING_ID	rb_intern("connecting")
-#define RBSRT_SOCKET_STATE_CONNECTED_ID		rb_intern("connected")
-#define RBSRT_SOCKET_STATE_BROKEN_ID		rb_intern("broken")
-#define RBSRT_SOCKET_STATE_CLOSING_ID		rb_intern("closing")
-#define RBSRT_SOCKET_STATE_CLOSED_ID		rb_intern("closed")
-#define RBSRT_SOCKET_STATE_NONEXIST_ID		rb_intern("nonexist")
+static VALUE rbsrt_sym_state_ready;
+static VALUE rbsrt_sym_state_opened;
+static VALUE rbsrt_sym_state_listening;
+static VALUE rbsrt_sym_state_connecting;
+static VALUE rbsrt_sym_state_connected;
+static VALUE rbsrt_sym_state_broken;
+static VALUE rbsrt_sym_state_closing;
+static VALUE rbsrt_sym_state_closed;
+static VALUE rbsrt_sym_state_nonexist;
 
-#define RBSRT_SOCKET_STATE_READY_SYM		RB_ID2SYM(RBSRT_SOCKET_STATE_READY_ID)
-#define RBSRT_SOCKET_STATE_OPENED_SYM		RB_ID2SYM(RBSRT_SOCKET_STATE_OPENED_ID)
-#define RBSRT_SOCKET_STATE_LISTENING_SYM	RB_ID2SYM(RBSRT_SOCKET_STATE_LISTENING_ID)
-#define RBSRT_SOCKET_STATE_CONNECTING_SYM	RB_ID2SYM(RBSRT_SOCKET_STATE_CONNECTING_ID)
-#define RBSRT_SOCKET_STATE_CONNECTED_SYM	RB_ID2SYM(RBSRT_SOCKET_STATE_CONNECTED_ID)
-#define RBSRT_SOCKET_STATE_BROKEN_SYM		RB_ID2SYM(RBSRT_SOCKET_STATE_BROKEN_ID)
-#define RBSRT_SOCKET_STATE_CLOSING_SYM		RB_ID2SYM(RBSRT_SOCKET_STATE_CLOSING_ID)
-#define RBSRT_SOCKET_STATE_CLOSED_SYM		RB_ID2SYM(RBSRT_SOCKET_STATE_CLOSED_ID)
-#define RBSRT_SOCKET_STATE_NONEXIST_SYM		RB_ID2SYM(RBSRT_SOCKET_STATE_NONEXIST_ID)
+#define RBSRT_SOCKET_STATE_READY_SYM		rbsrt_sym_state_ready
+#define RBSRT_SOCKET_STATE_OPENED_SYM		rbsrt_sym_state_opened
+#define RBSRT_SOCKET_STATE_LISTENING_SYM	rbsrt_sym_state_listening
+#define RBSRT_SOCKET_STATE_CONNECTING_SYM	rbsrt_sym_state_connecting
+#define RBSRT_SOCKET_STATE_CONNECTED_SYM	rbsrt_sym_state_connected
+#define RBSRT_SOCKET_STATE_BROKEN_SYM		rbsrt_sym_state_broken
+#define RBSRT_SOCKET_STATE_CLOSING_SYM		rbsrt_sym_state_closing
+#define RBSRT_SOCKET_STATE_CLOSED_SYM		rbsrt_sym_state_closed
+#define RBSRT_SOCKET_STATE_NONEXIST_SYM		rbsrt_sym_state_nonexist
 
 VALUE rbsrt_socket_get_socket_state(VALUE self)
 {
@@ -608,6 +587,66 @@ void rbsrt_define_socket_state_api(VALUE klass)
 }
 
 
+// MARK: - GVL-free I/O helpers
+
+struct rbsrt_accept_args {
+    SRTSOCKET server_socket;
+    SRTSOCKET client_socket;
+    struct sockaddr_storage remote_address;
+    int addr_size;
+};
+
+static void *rbsrt_accept_without_gvl(void *data)
+{
+    struct rbsrt_accept_args *args = data;
+    args->addr_size = sizeof(args->remote_address);
+    args->client_socket = srt_accept(args->server_socket,
+                                      (struct sockaddr *)&args->remote_address,
+                                      &args->addr_size);
+    return NULL;
+}
+
+struct rbsrt_recvmsg_args {
+    SRTSOCKET socket;
+    char buf[RBSRT_PAYLOAD_SIZE * 2];
+    int nbytes;
+};
+
+static void *rbsrt_recvmsg_without_gvl(void *data)
+{
+    struct rbsrt_recvmsg_args *args = data;
+    args->nbytes = srt_recvmsg2(args->socket, args->buf, sizeof(args->buf), NULL);
+    return NULL;
+}
+
+struct rbsrt_sendmsg_args {
+    SRTSOCKET socket;
+    const char *buf;
+    int buf_len;
+    int total_nbytes;
+    int srt_error;
+};
+
+static void *rbsrt_sendmsg_without_gvl(void *data)
+{
+    struct rbsrt_sendmsg_args *args = data;
+    int packet_size, nbytes;
+    args->total_nbytes = 0;
+    args->srt_error = 0;
+    do {
+        packet_size = (args->buf_len - args->total_nbytes) > RBSRT_PAYLOAD_SIZE
+                    ? RBSRT_PAYLOAD_SIZE
+                    : (args->buf_len - args->total_nbytes);
+        nbytes = srt_sendmsg2(args->socket, args->buf + args->total_nbytes, packet_size, NULL);
+        if (nbytes == SRT_ERROR) {
+            args->srt_error = 1;
+            return NULL;
+        }
+    } while ((args->total_nbytes += nbytes) < args->buf_len);
+    return NULL;
+}
+
+
 // MARK: Connecting
 
 VALUE rbsrt_socket_connect(VALUE self, VALUE host, VALUE port)
@@ -615,75 +654,43 @@ VALUE rbsrt_socket_connect(VALUE self, VALUE host, VALUE port)
     Check_Type(host, T_STRING);
     Check_Type(port, T_STRING);
 
-    RBSRT_DEBUG_PRINT("socket connect: host=%s, port=%s", StringValuePtr(host), StringValuePtr(port));
+    RBSRT_DEBUG_PRINT("socket connect: host=%s, port=%s", StringValueCStr(host), StringValueCStr(port));
 
     RBSRT_SOCKET_BASE_UNWRAP(self, socket);
 
-    VALUE retval = Qfalse;
-
-    int status;
-    struct addrinfo hints;
-    struct addrinfo *servinfo;
-    struct addrinfo *p;
-    
-    int ipv6only = 0;
-    int ipv4only = 0;
-
-
+    struct addrinfo hints, *servinfo, *p;
     memset(&hints, 0, sizeof hints);
-    
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_DGRAM;
-    
-    if ((status = getaddrinfo(StringValuePtr(host), StringValuePtr(port), &hints, &servinfo)) != 0)
+
+    const char *host_s = StringValueCStr(host);
+    const char *port_s = StringValueCStr(port);
+
+    if (getaddrinfo(host_s, port_s, &hints, &servinfo) != 0)
     {
-        rb_raise(rbsrt_eStandardError, "failed to get address info: %s", gai_strerror(status));
+        rb_raise(rbsrt_eStandardError, "failed to get address info");
     }
 
     srt_clearlasterror();
+    int result = SRT_ERROR;
 
-    for(p = servinfo;p != NULL; p = p->ai_next) 
+    for (p = servinfo; p != NULL; p = p->ai_next)
     {
-        if ((p->ai_family == AF_INET && ipv6only) || (p->ai_family == AF_INET6 && ipv4only))
+        if (srt_connect(socket->socket, p->ai_addr, p->ai_addrlen) != SRT_ERROR)
         {
-            continue;
+            result = 0;
+            break;
         }
-
-        if (srt_connect(socket->socket, p->ai_addr, p->ai_addrlen) == SRT_ERROR)
-        {
-            RBSRT_DEBUG_PRINT("failed to connect socket: %s", srt_getlasterror_str());
-
-            continue;
-        }
-
-        #if RBSRT_DEBUG
-        char ipstr[INET6_ADDRSTRLEN];
-        inet_ntop(
-                p->ai_family, 
-                (p->ai_family == AF_INET ? &(((struct sockaddr_in *)p->ai_addr)->sin_addr) : &(((struct sockaddr_in6 *)p->ai_addr)->sin6_addr)),
-                ipstr,
-                sizeof ipstr);
-
-        RBSRT_DEBUG_PRINT("socket connected: ip=%s", ipstr);
-        #endif
-
-        // connected
-
-        retval = Qtrue;
-
-        break;
     }
-
-    // complete
 
     freeaddrinfo(servinfo);
 
-    if (retval != Qtrue)
+    if (result == SRT_ERROR)
     {
         rbsrt_raise_last_srt_error();
     }
 
-    return retval;
+    return Qtrue;
 }
 
 VALUE rbsrt_socket_accept(VALUE self)
@@ -692,24 +699,22 @@ VALUE rbsrt_socket_accept(VALUE self)
 
     RBSRT_SOCKET_BASE_UNWRAP(self, socket);
 
-    struct sockaddr_storage remote_address;
-    int addr_size = sizeof(remote_address);
+    struct rbsrt_accept_args args;
+    args.server_socket = socket->socket;
 
-    SRTSOCKET accepted_socket = srt_accept(socket->socket, (struct sockaddr *)&remote_address, &addr_size);
+    rb_thread_call_without_gvl(rbsrt_accept_without_gvl, &args, NULL, NULL);
 
-    if (accepted_socket == SRT_ERROR)
+    if (args.client_socket == SRT_ERROR)
     {
         rbsrt_raise_last_srt_error();
-
-        return Qnil;
     }
 
     VALUE rbclient = rb_class_new_instance(0, NULL, mSRTSocketKlass);
 
     RBSRT_SOCKET_UNWRAP(rbclient, client);
 
-    client->socket = accepted_socket;
-    
+    client->socket = args.client_socket;
+
     return rbclient;
 }
 
@@ -796,64 +801,39 @@ VALUE rbsrt_socket_sendmsg(VALUE self, VALUE message)
 {
     RBSRT_DEBUG_PRINT("socket sendmsg");
 
+    Check_Type(message, T_STRING);
+
     RBSRT_SOCKET_BASE_UNWRAP(self, socket)
 
-    int message_type = rb_type(message);
-    const char *buf = NULL;
-    int buf_len = 0;
+    long buf_len = RSTRING_LEN(message);
 
-    switch (message_type)
+    // Copy message into a C buffer before releasing the GVL so the GC
+    // cannot move the Ruby string while we are blocked in SRT.
+    char *buf = malloc(buf_len);
+
+    if (!buf)
     {
-    case T_STRING:
-        buf = StringValuePtr(message);
-        buf_len = (int)RSTRING_LEN(message);
-        RBSRT_DEBUG_PRINT("sendmsg: %d", buf_len);
-        break;
-
-    case T_OBJECT:
-    case T_DATA:
-        RBSRT_DEBUG_PRINT("sendmsg DATA");
-        // TODO: Support binary 
-        rb_raise(rb_eArgError, "message must be a string");
-        // rdata
-        return FIX2INT(SRT_ERROR);
-        break;
-    
-    default:
-        rb_raise(rb_eArgError, "message must a string");
-
-        return FIX2INT(SRT_ERROR);
-        break;
+        rb_raise(rb_eNoMemError, "not enough memory for SRT send buffer");
     }
 
+    memcpy(buf, RSTRING_PTR(message), buf_len);
 
-    // send data
+    struct rbsrt_sendmsg_args args = {
+        .socket      = socket->socket,
+        .buf         = buf,
+        .buf_len     = (int)buf_len,
+    };
 
-    int packet_size;
-    int nbytes;
-    int total_nbytes = 0;
-    char const *buf_p = buf; 
+    rb_thread_call_without_gvl(rbsrt_sendmsg_without_gvl, &args, NULL, NULL);
 
-    do
+    free(buf);
+
+    if (args.srt_error)
     {
-        packet_size = (buf_len - total_nbytes) > RBSRT_PAYLOAD_SIZE ? RBSRT_PAYLOAD_SIZE : (buf_len - total_nbytes);
+        rbsrt_raise_last_srt_error();
+    }
 
-        nbytes = srt_sendmsg2(socket->socket, (buf_p + total_nbytes), packet_size, NULL);
-
-        if (nbytes == SRT_ERROR)
-        {
-            DEBUG_ERROR_PRINT("sendmsg error. %s", srt_getlasterror_str());
-
-            rbsrt_raise_last_srt_error();
-
-            break;
-        }
-
-        RBSRT_DEBUG_PRINT("send bytes %d", nbytes);
-    } 
-    while ((total_nbytes += nbytes) < buf_len);
-
-    return INT2FIX(total_nbytes);
+    return INT2FIX(args.total_nbytes);
 }
 
 VALUE rbsrt_socket_recvmsg(VALUE self)
@@ -862,28 +842,24 @@ VALUE rbsrt_socket_recvmsg(VALUE self)
 
     RBSRT_SOCKET_BASE_UNWRAP(self, socket)
 
-    int nbuf = RBSRT_PAYLOAD_SIZE * 2;
-    char buf[nbuf];
+    struct rbsrt_recvmsg_args args;
+    args.socket = socket->socket;
 
-    int nbytes = srt_recvmsg2(socket->socket, buf, nbuf, NULL);
+    rb_thread_call_without_gvl(rbsrt_recvmsg_without_gvl, &args, NULL, NULL);
 
-    if (nbytes == SRT_ERROR)
+    if (args.nbytes == SRT_ERROR)
     {
         rbsrt_raise_last_srt_error();
 
         return Qnil;
     }
 
-    else if (nbytes == 0)
+    if (args.nbytes == 0)
     {
-        // TODO: Close socket
         return Qnil;
     }
 
-    VALUE data = rb_str_buf_new((long)nbytes);
-    rb_str_buf_cat(data, buf, (long)nbytes);
-
-    return data;
+    return rb_str_new(args.buf, (long)args.nbytes);
 }
 
 
@@ -915,7 +891,7 @@ VALUE rbsrt_socket_set_rcvsyn(VALUE self, VALUE syn)
 VALUE rbsrt_socket_get_rcvsyn(VALUE self)
 {
     int is_syn = 0;
-    int is_syn_size = 0;
+    int is_syn_size = sizeof(is_syn);
 
     RBSRT_SOCKET_BASE_UNWRAP(self, socket);
 
@@ -948,7 +924,7 @@ VALUE rbsrt_socket_set_sndsyn(VALUE self, VALUE syn)
 VALUE rbsrt_socket_get_sndsyn(VALUE self)
 {
     int is_syn = 0;
-    int is_syn_size = 0;
+    int is_syn_size = sizeof(is_syn);
 
     RBSRT_SOCKET_BASE_UNWRAP(self, socket);
 
@@ -1116,7 +1092,7 @@ VALUE rbsrt_socket_get_tsbpdmode(VALUE self)
     RBSRT_SOCKET_BASE_UNWRAP(self, socket);
 
     int32_t tsbpdmode;
-    int tsbpdmode_size;
+    int tsbpdmode_size = sizeof(tsbpdmode);
 
     if (srt_getsockflag(socket->socket, SRTO_TSBPDMODE, &tsbpdmode, &tsbpdmode_size) == SRT_ERROR)
     {
@@ -1166,7 +1142,6 @@ VALUE rbsrt_socket_set_passphrase(VALUE self, VALUE passphrase)
 
         else if (passphrase_length != 0 && (passphrase_length < RBSRT_PASSPHRASE_MIN || passphrase_length > RBSRT_PASSPHRASE_MAX))
         {
-            printf("PASSPHASE: %s", passphrase_buf);
             rb_raise(rb_eArgError, "passphrase must be between %d and %d characters or empty (got %ld)", RBSRT_PASSPHRASE_MIN, RBSRT_PASSPHRASE_MAX, passphrase_length);
 
             return Qfalse;
@@ -1282,6 +1257,7 @@ VALUE rbsrt_socket_allocate(VALUE klass)
     RBSRT_DEBUG_PRINT("allocate socket");
 
     rbsrt_socket_t *socket = malloc(sizeof(rbsrt_socket_t));
+    if (!socket) { rb_raise(rb_eNoMemError, "not enough memory for SRT socket"); }
 
     memset(socket, 0, sizeof(rbsrt_socket_t));
     
@@ -1341,6 +1317,7 @@ VALUE rbsrt_connection_allocate(VALUE klass)
     RBSRT_DEBUG_PRINT("connection allocate");
 
     rbsrt_connection_t *connection = malloc(sizeof(rbsrt_connection_t));
+    if (!connection) { rb_raise(rb_eNoMemError, "not enough memory for SRT connection"); }
 
     memset(connection, 0, sizeof(rbsrt_connection_t));
 
@@ -1350,6 +1327,13 @@ VALUE rbsrt_connection_allocate(VALUE klass)
 void rbsrt_connection_deallocate(rbsrt_connection_t *connection)
 {
     RBSRT_DEBUG_PRINT("connection deallocate");
+
+    SRT_SOCKSTATUS status = srt_getsockstate(connection->socket);
+
+    if (status != SRTS_CLOSED && status != SRTS_CLOSING && status != SRTS_NONEXIST)
+    {
+        srt_close(connection->socket);
+    }
 
     free(connection);
 }
@@ -1430,7 +1414,7 @@ void rbsrt_server_deallocate(rbsrt_server_t *server)
 
     SRT_SOCKSTATUS status = srt_getsockstate(server->socket);
 
-    if (status != SRTS_CLOSED || status != SRTS_CLOSING)
+    if (status != SRTS_CLOSED && status != SRTS_CLOSING)
     {
         srt_close(server->socket);
     }
@@ -1443,6 +1427,7 @@ VALUE rbsrt_server_allocate(VALUE klass)
     RBSRT_DEBUG_PRINT("server allocate");
 
     rbsrt_server_t *server = malloc(sizeof(rbsrt_server_t));
+    if (!server) { rb_raise(rb_eNoMemError, "not enough memory for SRT server"); }
 
     memset(server, 0, sizeof(rbsrt_server_t));
 
@@ -1620,7 +1605,13 @@ VALUE rbsrt_server_start(VALUE self)
     {
         int num_events = (int)(uintptr_t)rb_thread_call_without_gvl(rbsrt_server_epoll_wait, &args, RUBY_UBF_IO, 0);
 
-        if (num_events <= 0)
+        if (num_events == SRT_ERROR)
+        {
+            RBSRT_DEBUG_PRINT("epoll wait error: %s", srt_getlasterror_str());
+            continue;
+        }
+
+        if (num_events == 0)
         {
             continue; // timeout
         }
@@ -1658,6 +1649,7 @@ VALUE rbsrt_server_start(VALUE self)
                     srt_setsockflag(remote_fd, SRTO_SNDSYN, &no, no_size);
 
                     connection = malloc(sizeof(rbsrt_connection_t));
+                    if (!connection) { srt_close(remote_fd); rb_raise(rb_eNoMemError, "not enough memory for SRT connection"); }
 
                     memset(connection, 0, sizeof(rbsrt_connection_t));
 
@@ -1779,7 +1771,6 @@ VALUE rbsrt_server_accept(VALUE self)
 
     RBSRT_SERVER_UNWRAP(self, server);
 
-    // Data_Get_Struct(self, rbsrt_server_t, server);   
     TypedData_Get_Struct(self, rbsrt_server_t, &rbsrt_server_rbtype, server);
 
     struct sockaddr_storage remote_address;
@@ -1791,7 +1782,7 @@ VALUE rbsrt_server_accept(VALUE self)
 
     rbsrt_client_t *client;
 
-    Data_Get_Struct(rbclient, rbsrt_client_t, client);
+    TypedData_Get_Struct(rbclient, rbsrt_client_t, &rbsrt_client_rbtype, client);
 
     client->socket = socket;
     
@@ -1849,6 +1840,7 @@ VALUE rbsrt_client_allocate(VALUE klass)
     RBSRT_DEBUG_PRINT("allocate client");
 
     rbsrt_client_t *client = malloc(sizeof(rbsrt_client_t));
+    if (!client) { rb_raise(rb_eNoMemError, "not enough memory for SRT client"); }
 
     memset(client, 0, sizeof(rbsrt_client_t));
     
@@ -1945,6 +1937,7 @@ VALUE rbsrt_poll_allocate(VALUE klass)
     RBSRT_DEBUG_PRINT("allocate poll");
 
     rbsrt_poll_t *poll = malloc(sizeof(rbsrt_poll_t));
+    if (!poll) { rb_raise(rb_eNoMemError, "not enough memory for SRT poll"); }
 
     memset(poll, 0, sizeof(rbsrt_poll_t));
     
@@ -2084,7 +2077,9 @@ VALUE rbsrt_poll_wait(int argc, VALUE* argv, VALUE self)
     VALUE sockets = rb_ivar_get(self, rb_intern("@sockets"));
     int num_sockets = FIX2INT(rb_hash_size(sockets));
 
-    SRT_EPOLL_EVENT events[num_sockets < 8 ? 8 : num_sockets + 8];
+    int events_capacity = num_sockets < 8 ? 8 : num_sockets + 8;
+    SRT_EPOLL_EVENT *events = malloc(events_capacity * sizeof(SRT_EPOLL_EVENT));
+    if (!events) { rb_raise(rb_eNoMemError, "not enough memory for poll events"); }
 
     VALUE readables = rb_ary_new();
     VALUE writables = rb_ary_new();
@@ -2093,7 +2088,7 @@ VALUE rbsrt_poll_wait(int argc, VALUE* argv, VALUE self)
     rbsrt_poll_wait_arg_t arg = {
         .epollid = poll->epollid,
         .timeout = epoll_timeout,
-        .num_sockets = num_sockets,
+        .num_sockets = events_capacity,
         .num_events = 0,
         .events = events
     };
@@ -2139,6 +2134,8 @@ VALUE rbsrt_poll_wait(int argc, VALUE* argv, VALUE self)
        }
     }
 
+    free(events);
+
     if (rb_block_given_p())
     {
         rb_yield_values(3, readables, writables, errors);
@@ -2155,6 +2152,19 @@ VALUE rbsrt_poll_wait(int argc, VALUE* argv, VALUE self)
 
 void Init_rbsrt() 
 {
+    // Socket state symbols (cached to avoid rb_intern on every call)
+
+    rbsrt_sym_state_ready      = ID2SYM(rb_intern("ready"));
+    rbsrt_sym_state_opened     = ID2SYM(rb_intern("opened"));
+    rbsrt_sym_state_listening  = ID2SYM(rb_intern("listening"));
+    rbsrt_sym_state_connecting = ID2SYM(rb_intern("connecting"));
+    rbsrt_sym_state_connected  = ID2SYM(rb_intern("connected"));
+    rbsrt_sym_state_broken     = ID2SYM(rb_intern("broken"));
+    rbsrt_sym_state_closing    = ID2SYM(rb_intern("closing"));
+    rbsrt_sym_state_closed     = ID2SYM(rb_intern("closed"));
+    rbsrt_sym_state_nonexist   = ID2SYM(rb_intern("nonexist"));
+
+
     // toplevel SRT module
 
 	mSRTModule = rb_define_module("SRT");
