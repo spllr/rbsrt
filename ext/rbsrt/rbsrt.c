@@ -56,27 +56,6 @@
 #include "rbstats.h"
 
 
-// MARK: Network
-
-int resolve_address(struct addrinfo *res, char host[], char port[])
-{
-    struct addrinfo hints;
-    
-    memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_DGRAM;
-
-    int status;
-
-    if ((status = getaddrinfo(host, port, &hints, &res)) != 0)
-    {
-        DEBUG_ERROR_PRINT("getaddrinfo: %s", gai_strerror(status));
-        
-        return RBSRT_FAILURE;
-    }
-
-    return RBSRT_SUCCESS;
-}
 
 void *get_in_addr(struct sockaddr *sa)
 {
@@ -348,43 +327,43 @@ void rbsrt_init_errors()
 
     // Error Types
 
-    rbstr_eUNKNOWNError					= rb_define_class_under(rb_eStandardError, "UNKNOWN", rbsrt_eStandardError);
-    rbstr_eCONNSETUPError				= rb_define_class_under(rb_eStandardError, "CONNSETUP", rbsrt_eStandardError);
-    rbstr_eNOSERVERError				= rb_define_class_under(rb_eStandardError, "NOSERVER", rbsrt_eStandardError);
-    rbstr_eCONNREJError					= rb_define_class_under(rb_eStandardError, "CONNREJ", rbsrt_eStandardError);
-    rbstr_eSOCKFAILError				= rb_define_class_under(rb_eStandardError, "SOCKFAIL", rbsrt_eStandardError);
-    rbstr_eSECFAILError					= rb_define_class_under(rb_eStandardError, "SECFAIL", rbsrt_eStandardError);
-    rbstr_eCONNFAILError				= rb_define_class_under(rb_eStandardError, "CONNFAIL", rbsrt_eStandardError);
-    rbstr_eCONNLOSTError				= rb_define_class_under(rb_eStandardError, "CONNLOST", rbsrt_eStandardError);
-    rbstr_eNOCONNError					= rb_define_class_under(rb_eStandardError, "NOCONN", rbsrt_eStandardError);
-    rbstr_eRESOURCEError				= rb_define_class_under(rb_eStandardError, "RESOURCE", rbsrt_eStandardError);
-    rbstr_eTHREADError					= rb_define_class_under(rb_eStandardError, "THREAD", rbsrt_eStandardError);
-    rbstr_eNOBUFError					= rb_define_class_under(rb_eStandardError, "NOBUF", rbsrt_eStandardError);
-    rbstr_eFILEError					= rb_define_class_under(rb_eStandardError, "FILE", rbsrt_eStandardError);
-    rbstr_eINVRDOFFError				= rb_define_class_under(rb_eStandardError, "INVRDOFF", rbsrt_eStandardError);
-    rbstr_eRDPERMError					= rb_define_class_under(rb_eStandardError, "RDPERM", rbsrt_eStandardError);
-    rbstr_eINVWROFFError				= rb_define_class_under(rb_eStandardError, "INVWROFF", rbsrt_eStandardError);
-    rbstr_eWRPERMError					= rb_define_class_under(rb_eStandardError, "WRPERM", rbsrt_eStandardError);
-    rbstr_eINVOPError					= rb_define_class_under(rb_eStandardError, "INVOP", rbsrt_eStandardError);
-    rbstr_eBOUNDSOCKError				= rb_define_class_under(rb_eStandardError, "BOUNDSOCK", rbsrt_eStandardError);
-    rbstr_eCONNSOCKError				= rb_define_class_under(rb_eStandardError, "CONNSOCK", rbsrt_eStandardError);
-    rbstr_eINVPARAMError				= rb_define_class_under(rb_eStandardError, "INVPARAM", rbsrt_eStandardError);
-    rbstr_eINVSOCKError					= rb_define_class_under(rb_eStandardError, "INVSOCK", rbsrt_eStandardError);
-    rbstr_eUNBOUNDSOCKError			    = rb_define_class_under(rb_eStandardError, "UNBOUNDSOCK", rbsrt_eStandardError);
-    rbstr_eNOLISTENError				= rb_define_class_under(rb_eStandardError, "NOLISTEN", rbsrt_eStandardError);
-    rbstr_eRDVNOSERVError				= rb_define_class_under(rb_eStandardError, "RDVNOSERV", rbsrt_eStandardError);
-    rbstr_eRDVUNBOUNDError			    = rb_define_class_under(rb_eStandardError, "RDVUNBOUND", rbsrt_eStandardError);
-    rbstr_eINVALMSGAPIError			    = rb_define_class_under(rb_eStandardError, "INVALMSGAPI", rbsrt_eStandardError);
-    rbstr_eINVALBUFFERAPIError	        = rb_define_class_under(rb_eStandardError, "INVALBUFFERAPI", rbsrt_eStandardError);
-    rbstr_eDUPLISTENError				= rb_define_class_under(rb_eStandardError, "DUPLISTEN", rbsrt_eStandardError);
-    rbstr_eLARGEMSGError				= rb_define_class_under(rb_eStandardError, "LARGEMSG", rbsrt_eStandardError);
-    rbstr_eINVPOLLIDError				= rb_define_class_under(rb_eStandardError, "INVPOLLID", rbsrt_eStandardError);
-    rbstr_eASYNCFAILError				= rb_define_class_under(rb_eStandardError, "ASYNCFAIL", rbsrt_eStandardError);
-    rbstr_eASYNCSNDError				= rb_define_class_under(rb_eStandardError, "ASYNCSND", rbsrt_eStandardError);
-    rbstr_eASYNCRCVError				= rb_define_class_under(rb_eStandardError, "ASYNCRCV", rbsrt_eStandardError);
-    rbstr_eTIMEOUTError					= rb_define_class_under(rb_eStandardError, "TIMEOUT", rbsrt_eStandardError);
-    rbstr_eCONGESTError					= rb_define_class_under(rb_eStandardError, "CONGEST", rbsrt_eStandardError);
-    rbstr_ePEERERRError					= rb_define_class_under(rb_eStandardError, "PEERERR", rbsrt_eStandardError);
+    rbstr_eUNKNOWNError					= rb_define_class_under(mSRTModule, "UNKNOWN", rbsrt_eStandardError);
+    rbstr_eCONNSETUPError				= rb_define_class_under(mSRTModule, "CONNSETUP", rbsrt_eStandardError);
+    rbstr_eNOSERVERError				= rb_define_class_under(mSRTModule, "NOSERVER", rbsrt_eStandardError);
+    rbstr_eCONNREJError					= rb_define_class_under(mSRTModule, "CONNREJ", rbsrt_eStandardError);
+    rbstr_eSOCKFAILError				= rb_define_class_under(mSRTModule, "SOCKFAIL", rbsrt_eStandardError);
+    rbstr_eSECFAILError					= rb_define_class_under(mSRTModule, "SECFAIL", rbsrt_eStandardError);
+    rbstr_eCONNFAILError				= rb_define_class_under(mSRTModule, "CONNFAIL", rbsrt_eStandardError);
+    rbstr_eCONNLOSTError				= rb_define_class_under(mSRTModule, "CONNLOST", rbsrt_eStandardError);
+    rbstr_eNOCONNError					= rb_define_class_under(mSRTModule, "NOCONN", rbsrt_eStandardError);
+    rbstr_eRESOURCEError				= rb_define_class_under(mSRTModule, "RESOURCE", rbsrt_eStandardError);
+    rbstr_eTHREADError					= rb_define_class_under(mSRTModule, "THREAD", rbsrt_eStandardError);
+    rbstr_eNOBUFError					= rb_define_class_under(mSRTModule, "NOBUF", rbsrt_eStandardError);
+    rbstr_eFILEError					= rb_define_class_under(mSRTModule, "FILE", rbsrt_eStandardError);
+    rbstr_eINVRDOFFError				= rb_define_class_under(mSRTModule, "INVRDOFF", rbsrt_eStandardError);
+    rbstr_eRDPERMError					= rb_define_class_under(mSRTModule, "RDPERM", rbsrt_eStandardError);
+    rbstr_eINVWROFFError				= rb_define_class_under(mSRTModule, "INVWROFF", rbsrt_eStandardError);
+    rbstr_eWRPERMError					= rb_define_class_under(mSRTModule, "WRPERM", rbsrt_eStandardError);
+    rbstr_eINVOPError					= rb_define_class_under(mSRTModule, "INVOP", rbsrt_eStandardError);
+    rbstr_eBOUNDSOCKError				= rb_define_class_under(mSRTModule, "BOUNDSOCK", rbsrt_eStandardError);
+    rbstr_eCONNSOCKError				= rb_define_class_under(mSRTModule, "CONNSOCK", rbsrt_eStandardError);
+    rbstr_eINVPARAMError				= rb_define_class_under(mSRTModule, "INVPARAM", rbsrt_eStandardError);
+    rbstr_eINVSOCKError					= rb_define_class_under(mSRTModule, "INVSOCK", rbsrt_eStandardError);
+    rbstr_eUNBOUNDSOCKError			    = rb_define_class_under(mSRTModule, "UNBOUNDSOCK", rbsrt_eStandardError);
+    rbstr_eNOLISTENError				= rb_define_class_under(mSRTModule, "NOLISTEN", rbsrt_eStandardError);
+    rbstr_eRDVNOSERVError				= rb_define_class_under(mSRTModule, "RDVNOSERV", rbsrt_eStandardError);
+    rbstr_eRDVUNBOUNDError			    = rb_define_class_under(mSRTModule, "RDVUNBOUND", rbsrt_eStandardError);
+    rbstr_eINVALMSGAPIError			    = rb_define_class_under(mSRTModule, "INVALMSGAPI", rbsrt_eStandardError);
+    rbstr_eINVALBUFFERAPIError	        = rb_define_class_under(mSRTModule, "INVALBUFFERAPI", rbsrt_eStandardError);
+    rbstr_eDUPLISTENError				= rb_define_class_under(mSRTModule, "DUPLISTEN", rbsrt_eStandardError);
+    rbstr_eLARGEMSGError				= rb_define_class_under(mSRTModule, "LARGEMSG", rbsrt_eStandardError);
+    rbstr_eINVPOLLIDError				= rb_define_class_under(mSRTModule, "INVPOLLID", rbsrt_eStandardError);
+    rbstr_eASYNCFAILError				= rb_define_class_under(mSRTModule, "ASYNCFAIL", rbsrt_eStandardError);
+    rbstr_eASYNCSNDError				= rb_define_class_under(mSRTModule, "ASYNCSND", rbsrt_eStandardError);
+    rbstr_eASYNCRCVError				= rb_define_class_under(mSRTModule, "ASYNCRCV", rbsrt_eStandardError);
+    rbstr_eTIMEOUTError					= rb_define_class_under(mSRTModule, "TIMEOUT", rbsrt_eStandardError);
+    rbstr_eCONGESTError					= rb_define_class_under(mSRTModule, "CONGEST", rbsrt_eStandardError);
+    rbstr_ePEERERRError					= rb_define_class_under(mSRTModule, "PEERERR", rbsrt_eStandardError);
 
 
     // Error Codes
@@ -453,25 +432,25 @@ void rbsrt_srt_cleanup(ruby_vm_t *vm)
 
 // MARK: Socket State
 
-#define RBSRT_SOCKET_STATE_READY_ID		    rb_intern("ready")
-#define RBSRT_SOCKET_STATE_OPENED_ID		rb_intern("opened")
-#define RBSRT_SOCKET_STATE_LISTENING_ID		rb_intern("listening")
-#define RBSRT_SOCKET_STATE_CONNECTING_ID	rb_intern("connecting")
-#define RBSRT_SOCKET_STATE_CONNECTED_ID		rb_intern("connected")
-#define RBSRT_SOCKET_STATE_BROKEN_ID		rb_intern("broken")
-#define RBSRT_SOCKET_STATE_CLOSING_ID		rb_intern("closing")
-#define RBSRT_SOCKET_STATE_CLOSED_ID		rb_intern("closed")
-#define RBSRT_SOCKET_STATE_NONEXIST_ID		rb_intern("nonexist")
+static VALUE rbsrt_sym_state_ready;
+static VALUE rbsrt_sym_state_opened;
+static VALUE rbsrt_sym_state_listening;
+static VALUE rbsrt_sym_state_connecting;
+static VALUE rbsrt_sym_state_connected;
+static VALUE rbsrt_sym_state_broken;
+static VALUE rbsrt_sym_state_closing;
+static VALUE rbsrt_sym_state_closed;
+static VALUE rbsrt_sym_state_nonexist;
 
-#define RBSRT_SOCKET_STATE_READY_SYM		RB_ID2SYM(RBSRT_SOCKET_STATE_READY_ID)
-#define RBSRT_SOCKET_STATE_OPENED_SYM		RB_ID2SYM(RBSRT_SOCKET_STATE_OPENED_ID)
-#define RBSRT_SOCKET_STATE_LISTENING_SYM	RB_ID2SYM(RBSRT_SOCKET_STATE_LISTENING_ID)
-#define RBSRT_SOCKET_STATE_CONNECTING_SYM	RB_ID2SYM(RBSRT_SOCKET_STATE_CONNECTING_ID)
-#define RBSRT_SOCKET_STATE_CONNECTED_SYM	RB_ID2SYM(RBSRT_SOCKET_STATE_CONNECTED_ID)
-#define RBSRT_SOCKET_STATE_BROKEN_SYM		RB_ID2SYM(RBSRT_SOCKET_STATE_BROKEN_ID)
-#define RBSRT_SOCKET_STATE_CLOSING_SYM		RB_ID2SYM(RBSRT_SOCKET_STATE_CLOSING_ID)
-#define RBSRT_SOCKET_STATE_CLOSED_SYM		RB_ID2SYM(RBSRT_SOCKET_STATE_CLOSED_ID)
-#define RBSRT_SOCKET_STATE_NONEXIST_SYM		RB_ID2SYM(RBSRT_SOCKET_STATE_NONEXIST_ID)
+#define RBSRT_SOCKET_STATE_READY_SYM		rbsrt_sym_state_ready
+#define RBSRT_SOCKET_STATE_OPENED_SYM		rbsrt_sym_state_opened
+#define RBSRT_SOCKET_STATE_LISTENING_SYM	rbsrt_sym_state_listening
+#define RBSRT_SOCKET_STATE_CONNECTING_SYM	rbsrt_sym_state_connecting
+#define RBSRT_SOCKET_STATE_CONNECTED_SYM	rbsrt_sym_state_connected
+#define RBSRT_SOCKET_STATE_BROKEN_SYM		rbsrt_sym_state_broken
+#define RBSRT_SOCKET_STATE_CLOSING_SYM		rbsrt_sym_state_closing
+#define RBSRT_SOCKET_STATE_CLOSED_SYM		rbsrt_sym_state_closed
+#define RBSRT_SOCKET_STATE_NONEXIST_SYM		rbsrt_sym_state_nonexist
 
 VALUE rbsrt_socket_get_socket_state(VALUE self)
 {
@@ -1163,7 +1142,6 @@ VALUE rbsrt_socket_set_passphrase(VALUE self, VALUE passphrase)
 
         else if (passphrase_length != 0 && (passphrase_length < RBSRT_PASSPHRASE_MIN || passphrase_length > RBSRT_PASSPHRASE_MAX))
         {
-            printf("PASSPHASE: %s", passphrase_buf);
             rb_raise(rb_eArgError, "passphrase must be between %d and %d characters or empty (got %ld)", RBSRT_PASSPHRASE_MIN, RBSRT_PASSPHRASE_MAX, passphrase_length);
 
             return Qfalse;
@@ -1279,6 +1257,7 @@ VALUE rbsrt_socket_allocate(VALUE klass)
     RBSRT_DEBUG_PRINT("allocate socket");
 
     rbsrt_socket_t *socket = malloc(sizeof(rbsrt_socket_t));
+    if (!socket) { rb_raise(rb_eNoMemError, "not enough memory for SRT socket"); }
 
     memset(socket, 0, sizeof(rbsrt_socket_t));
     
@@ -1338,6 +1317,7 @@ VALUE rbsrt_connection_allocate(VALUE klass)
     RBSRT_DEBUG_PRINT("connection allocate");
 
     rbsrt_connection_t *connection = malloc(sizeof(rbsrt_connection_t));
+    if (!connection) { rb_raise(rb_eNoMemError, "not enough memory for SRT connection"); }
 
     memset(connection, 0, sizeof(rbsrt_connection_t));
 
@@ -1447,6 +1427,7 @@ VALUE rbsrt_server_allocate(VALUE klass)
     RBSRT_DEBUG_PRINT("server allocate");
 
     rbsrt_server_t *server = malloc(sizeof(rbsrt_server_t));
+    if (!server) { rb_raise(rb_eNoMemError, "not enough memory for SRT server"); }
 
     memset(server, 0, sizeof(rbsrt_server_t));
 
@@ -1624,7 +1605,13 @@ VALUE rbsrt_server_start(VALUE self)
     {
         int num_events = (int)(uintptr_t)rb_thread_call_without_gvl(rbsrt_server_epoll_wait, &args, RUBY_UBF_IO, 0);
 
-        if (num_events <= 0)
+        if (num_events == SRT_ERROR)
+        {
+            RBSRT_DEBUG_PRINT("epoll wait error: %s", srt_getlasterror_str());
+            continue;
+        }
+
+        if (num_events == 0)
         {
             continue; // timeout
         }
@@ -1662,6 +1649,7 @@ VALUE rbsrt_server_start(VALUE self)
                     srt_setsockflag(remote_fd, SRTO_SNDSYN, &no, no_size);
 
                     connection = malloc(sizeof(rbsrt_connection_t));
+                    if (!connection) { srt_close(remote_fd); rb_raise(rb_eNoMemError, "not enough memory for SRT connection"); }
 
                     memset(connection, 0, sizeof(rbsrt_connection_t));
 
@@ -1783,7 +1771,6 @@ VALUE rbsrt_server_accept(VALUE self)
 
     RBSRT_SERVER_UNWRAP(self, server);
 
-    // Data_Get_Struct(self, rbsrt_server_t, server);   
     TypedData_Get_Struct(self, rbsrt_server_t, &rbsrt_server_rbtype, server);
 
     struct sockaddr_storage remote_address;
@@ -1795,7 +1782,7 @@ VALUE rbsrt_server_accept(VALUE self)
 
     rbsrt_client_t *client;
 
-    Data_Get_Struct(rbclient, rbsrt_client_t, client);
+    TypedData_Get_Struct(rbclient, rbsrt_client_t, &rbsrt_client_rbtype, client);
 
     client->socket = socket;
     
@@ -1853,6 +1840,7 @@ VALUE rbsrt_client_allocate(VALUE klass)
     RBSRT_DEBUG_PRINT("allocate client");
 
     rbsrt_client_t *client = malloc(sizeof(rbsrt_client_t));
+    if (!client) { rb_raise(rb_eNoMemError, "not enough memory for SRT client"); }
 
     memset(client, 0, sizeof(rbsrt_client_t));
     
@@ -1949,6 +1937,7 @@ VALUE rbsrt_poll_allocate(VALUE klass)
     RBSRT_DEBUG_PRINT("allocate poll");
 
     rbsrt_poll_t *poll = malloc(sizeof(rbsrt_poll_t));
+    if (!poll) { rb_raise(rb_eNoMemError, "not enough memory for SRT poll"); }
 
     memset(poll, 0, sizeof(rbsrt_poll_t));
     
@@ -2088,7 +2077,9 @@ VALUE rbsrt_poll_wait(int argc, VALUE* argv, VALUE self)
     VALUE sockets = rb_ivar_get(self, rb_intern("@sockets"));
     int num_sockets = FIX2INT(rb_hash_size(sockets));
 
-    SRT_EPOLL_EVENT events[num_sockets < 8 ? 8 : num_sockets + 8];
+    int events_capacity = num_sockets < 8 ? 8 : num_sockets + 8;
+    SRT_EPOLL_EVENT *events = malloc(events_capacity * sizeof(SRT_EPOLL_EVENT));
+    if (!events) { rb_raise(rb_eNoMemError, "not enough memory for poll events"); }
 
     VALUE readables = rb_ary_new();
     VALUE writables = rb_ary_new();
@@ -2097,7 +2088,7 @@ VALUE rbsrt_poll_wait(int argc, VALUE* argv, VALUE self)
     rbsrt_poll_wait_arg_t arg = {
         .epollid = poll->epollid,
         .timeout = epoll_timeout,
-        .num_sockets = num_sockets,
+        .num_sockets = events_capacity,
         .num_events = 0,
         .events = events
     };
@@ -2143,6 +2134,8 @@ VALUE rbsrt_poll_wait(int argc, VALUE* argv, VALUE self)
        }
     }
 
+    free(events);
+
     if (rb_block_given_p())
     {
         rb_yield_values(3, readables, writables, errors);
@@ -2159,6 +2152,19 @@ VALUE rbsrt_poll_wait(int argc, VALUE* argv, VALUE self)
 
 void Init_rbsrt() 
 {
+    // Socket state symbols (cached to avoid rb_intern on every call)
+
+    rbsrt_sym_state_ready      = ID2SYM(rb_intern("ready"));
+    rbsrt_sym_state_opened     = ID2SYM(rb_intern("opened"));
+    rbsrt_sym_state_listening  = ID2SYM(rb_intern("listening"));
+    rbsrt_sym_state_connecting = ID2SYM(rb_intern("connecting"));
+    rbsrt_sym_state_connected  = ID2SYM(rb_intern("connected"));
+    rbsrt_sym_state_broken     = ID2SYM(rb_intern("broken"));
+    rbsrt_sym_state_closing    = ID2SYM(rb_intern("closing"));
+    rbsrt_sym_state_closed     = ID2SYM(rb_intern("closed"));
+    rbsrt_sym_state_nonexist   = ID2SYM(rb_intern("nonexist"));
+
+
     // toplevel SRT module
 
 	mSRTModule = rb_define_module("SRT");
