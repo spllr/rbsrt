@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    rbsrt (0.1.2)
+    rbsrt (0.2.0)
 
 GEM
   remote: http://rubygems.org/
@@ -13,6 +13,7 @@ GEM
 
 PLATFORMS
   arm64-darwin-21
+  x86_64-linux
 
 DEPENDENCIES
   gem-release (~> 2.2)
