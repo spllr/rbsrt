@@ -608,6 +608,66 @@ void rbsrt_define_socket_state_api(VALUE klass)
 }
 
 
+// MARK: - GVL-free I/O helpers
+
+struct rbsrt_accept_args {
+    SRTSOCKET server_socket;
+    SRTSOCKET client_socket;
+    struct sockaddr_storage remote_address;
+    int addr_size;
+};
+
+static void *rbsrt_accept_without_gvl(void *data)
+{
+    struct rbsrt_accept_args *args = data;
+    args->addr_size = sizeof(args->remote_address);
+    args->client_socket = srt_accept(args->server_socket,
+                                      (struct sockaddr *)&args->remote_address,
+                                      &args->addr_size);
+    return NULL;
+}
+
+struct rbsrt_recvmsg_args {
+    SRTSOCKET socket;
+    char buf[RBSRT_PAYLOAD_SIZE * 2];
+    int nbytes;
+};
+
+static void *rbsrt_recvmsg_without_gvl(void *data)
+{
+    struct rbsrt_recvmsg_args *args = data;
+    args->nbytes = srt_recvmsg2(args->socket, args->buf, sizeof(args->buf), NULL);
+    return NULL;
+}
+
+struct rbsrt_sendmsg_args {
+    SRTSOCKET socket;
+    const char *buf;
+    int buf_len;
+    int total_nbytes;
+    int srt_error;
+};
+
+static void *rbsrt_sendmsg_without_gvl(void *data)
+{
+    struct rbsrt_sendmsg_args *args = data;
+    int packet_size, nbytes;
+    args->total_nbytes = 0;
+    args->srt_error = 0;
+    do {
+        packet_size = (args->buf_len - args->total_nbytes) > RBSRT_PAYLOAD_SIZE
+                    ? RBSRT_PAYLOAD_SIZE
+                    : (args->buf_len - args->total_nbytes);
+        nbytes = srt_sendmsg2(args->socket, args->buf + args->total_nbytes, packet_size, NULL);
+        if (nbytes == SRT_ERROR) {
+            args->srt_error = 1;
+            return NULL;
+        }
+    } while ((args->total_nbytes += nbytes) < args->buf_len);
+    return NULL;
+}
+
+
 // MARK: Connecting
 
 VALUE rbsrt_socket_connect(VALUE self, VALUE host, VALUE port)
@@ -615,75 +675,43 @@ VALUE rbsrt_socket_connect(VALUE self, VALUE host, VALUE port)
     Check_Type(host, T_STRING);
     Check_Type(port, T_STRING);
 
-    RBSRT_DEBUG_PRINT("socket connect: host=%s, port=%s", StringValuePtr(host), StringValuePtr(port));
+    RBSRT_DEBUG_PRINT("socket connect: host=%s, port=%s", StringValueCStr(host), StringValueCStr(port));
 
     RBSRT_SOCKET_BASE_UNWRAP(self, socket);
 
-    VALUE retval = Qfalse;
-
-    int status;
-    struct addrinfo hints;
-    struct addrinfo *servinfo;
-    struct addrinfo *p;
-    
-    int ipv6only = 0;
-    int ipv4only = 0;
-
-
+    struct addrinfo hints, *servinfo, *p;
     memset(&hints, 0, sizeof hints);
-    
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_DGRAM;
-    
-    if ((status = getaddrinfo(StringValuePtr(host), StringValuePtr(port), &hints, &servinfo)) != 0)
+
+    const char *host_s = StringValueCStr(host);
+    const char *port_s = StringValueCStr(port);
+
+    if (getaddrinfo(host_s, port_s, &hints, &servinfo) != 0)
     {
-        rb_raise(rbsrt_eStandardError, "failed to get address info: %s", gai_strerror(status));
+        rb_raise(rbsrt_eStandardError, "failed to get address info");
     }
 
     srt_clearlasterror();
+    int result = SRT_ERROR;
 
-    for(p = servinfo;p != NULL; p = p->ai_next) 
+    for (p = servinfo; p != NULL; p = p->ai_next)
     {
-        if ((p->ai_family == AF_INET && ipv6only) || (p->ai_family == AF_INET6 && ipv4only))
+        if (srt_connect(socket->socket, p->ai_addr, p->ai_addrlen) != SRT_ERROR)
         {
-            continue;
+            result = 0;
+            break;
         }
-
-        if (srt_connect(socket->socket, p->ai_addr, p->ai_addrlen) == SRT_ERROR)
-        {
-            RBSRT_DEBUG_PRINT("failed to connect socket: %s", srt_getlasterror_str());
-
-            continue;
-        }
-
-        #if RBSRT_DEBUG
-        char ipstr[INET6_ADDRSTRLEN];
-        inet_ntop(
-                p->ai_family, 
-                (p->ai_family == AF_INET ? &(((struct sockaddr_in *)p->ai_addr)->sin_addr) : &(((struct sockaddr_in6 *)p->ai_addr)->sin6_addr)),
-                ipstr,
-                sizeof ipstr);
-
-        RBSRT_DEBUG_PRINT("socket connected: ip=%s", ipstr);
-        #endif
-
-        // connected
-
-        retval = Qtrue;
-
-        break;
     }
-
-    // complete
 
     freeaddrinfo(servinfo);
 
-    if (retval != Qtrue)
+    if (result == SRT_ERROR)
     {
         rbsrt_raise_last_srt_error();
     }
 
-    return retval;
+    return Qtrue;
 }
 
 VALUE rbsrt_socket_accept(VALUE self)
@@ -692,24 +720,22 @@ VALUE rbsrt_socket_accept(VALUE self)
 
     RBSRT_SOCKET_BASE_UNWRAP(self, socket);
 
-    struct sockaddr_storage remote_address;
-    int addr_size = sizeof(remote_address);
+    struct rbsrt_accept_args args;
+    args.server_socket = socket->socket;
 
-    SRTSOCKET accepted_socket = srt_accept(socket->socket, (struct sockaddr *)&remote_address, &addr_size);
+    rb_thread_call_without_gvl(rbsrt_accept_without_gvl, &args, NULL, NULL);
 
-    if (accepted_socket == SRT_ERROR)
+    if (args.client_socket == SRT_ERROR)
     {
         rbsrt_raise_last_srt_error();
-
-        return Qnil;
     }
 
     VALUE rbclient = rb_class_new_instance(0, NULL, mSRTSocketKlass);
 
     RBSRT_SOCKET_UNWRAP(rbclient, client);
 
-    client->socket = accepted_socket;
-    
+    client->socket = args.client_socket;
+
     return rbclient;
 }
 
@@ -796,64 +822,39 @@ VALUE rbsrt_socket_sendmsg(VALUE self, VALUE message)
 {
     RBSRT_DEBUG_PRINT("socket sendmsg");
 
+    Check_Type(message, T_STRING);
+
     RBSRT_SOCKET_BASE_UNWRAP(self, socket)
 
-    int message_type = rb_type(message);
-    const char *buf = NULL;
-    int buf_len = 0;
+    long buf_len = RSTRING_LEN(message);
 
-    switch (message_type)
+    // Copy message into a C buffer before releasing the GVL so the GC
+    // cannot move the Ruby string while we are blocked in SRT.
+    char *buf = malloc(buf_len);
+
+    if (!buf)
     {
-    case T_STRING:
-        buf = StringValuePtr(message);
-        buf_len = (int)RSTRING_LEN(message);
-        RBSRT_DEBUG_PRINT("sendmsg: %d", buf_len);
-        break;
-
-    case T_OBJECT:
-    case T_DATA:
-        RBSRT_DEBUG_PRINT("sendmsg DATA");
-        // TODO: Support binary 
-        rb_raise(rb_eArgError, "message must be a string");
-        // rdata
-        return FIX2INT(SRT_ERROR);
-        break;
-    
-    default:
-        rb_raise(rb_eArgError, "message must a string");
-
-        return FIX2INT(SRT_ERROR);
-        break;
+        rb_raise(rb_eNoMemError, "not enough memory for SRT send buffer");
     }
 
+    memcpy(buf, RSTRING_PTR(message), buf_len);
 
-    // send data
+    struct rbsrt_sendmsg_args args = {
+        .socket      = socket->socket,
+        .buf         = buf,
+        .buf_len     = (int)buf_len,
+    };
 
-    int packet_size;
-    int nbytes;
-    int total_nbytes = 0;
-    char const *buf_p = buf; 
+    rb_thread_call_without_gvl(rbsrt_sendmsg_without_gvl, &args, NULL, NULL);
 
-    do
+    free(buf);
+
+    if (args.srt_error)
     {
-        packet_size = (buf_len - total_nbytes) > RBSRT_PAYLOAD_SIZE ? RBSRT_PAYLOAD_SIZE : (buf_len - total_nbytes);
+        rbsrt_raise_last_srt_error();
+    }
 
-        nbytes = srt_sendmsg2(socket->socket, (buf_p + total_nbytes), packet_size, NULL);
-
-        if (nbytes == SRT_ERROR)
-        {
-            DEBUG_ERROR_PRINT("sendmsg error. %s", srt_getlasterror_str());
-
-            rbsrt_raise_last_srt_error();
-
-            break;
-        }
-
-        RBSRT_DEBUG_PRINT("send bytes %d", nbytes);
-    } 
-    while ((total_nbytes += nbytes) < buf_len);
-
-    return INT2FIX(total_nbytes);
+    return INT2FIX(args.total_nbytes);
 }
 
 VALUE rbsrt_socket_recvmsg(VALUE self)
@@ -862,28 +863,24 @@ VALUE rbsrt_socket_recvmsg(VALUE self)
 
     RBSRT_SOCKET_BASE_UNWRAP(self, socket)
 
-    int nbuf = RBSRT_PAYLOAD_SIZE * 2;
-    char buf[nbuf];
+    struct rbsrt_recvmsg_args args;
+    args.socket = socket->socket;
 
-    int nbytes = srt_recvmsg2(socket->socket, buf, nbuf, NULL);
+    rb_thread_call_without_gvl(rbsrt_recvmsg_without_gvl, &args, NULL, NULL);
 
-    if (nbytes == SRT_ERROR)
+    if (args.nbytes == SRT_ERROR)
     {
         rbsrt_raise_last_srt_error();
 
         return Qnil;
     }
 
-    else if (nbytes == 0)
+    if (args.nbytes == 0)
     {
-        // TODO: Close socket
         return Qnil;
     }
 
-    VALUE data = rb_str_buf_new((long)nbytes);
-    rb_str_buf_cat(data, buf, (long)nbytes);
-
-    return data;
+    return rb_str_new(args.buf, (long)args.nbytes);
 }
 
 
@@ -1351,6 +1348,13 @@ void rbsrt_connection_deallocate(rbsrt_connection_t *connection)
 {
     RBSRT_DEBUG_PRINT("connection deallocate");
 
+    SRT_SOCKSTATUS status = srt_getsockstate(connection->socket);
+
+    if (status != SRTS_CLOSED && status != SRTS_CLOSING && status != SRTS_NONEXIST)
+    {
+        srt_close(connection->socket);
+    }
+
     free(connection);
 }
 
@@ -1430,7 +1434,7 @@ void rbsrt_server_deallocate(rbsrt_server_t *server)
 
     SRT_SOCKSTATUS status = srt_getsockstate(server->socket);
 
-    if (status != SRTS_CLOSED || status != SRTS_CLOSING)
+    if (status != SRTS_CLOSED && status != SRTS_CLOSING)
     {
         srt_close(server->socket);
     }
