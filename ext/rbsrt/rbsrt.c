@@ -912,7 +912,7 @@ VALUE rbsrt_socket_set_rcvsyn(VALUE self, VALUE syn)
 VALUE rbsrt_socket_get_rcvsyn(VALUE self)
 {
     int is_syn = 0;
-    int is_syn_size = 0;
+    int is_syn_size = sizeof(is_syn);
 
     RBSRT_SOCKET_BASE_UNWRAP(self, socket);
 
@@ -945,7 +945,7 @@ VALUE rbsrt_socket_set_sndsyn(VALUE self, VALUE syn)
 VALUE rbsrt_socket_get_sndsyn(VALUE self)
 {
     int is_syn = 0;
-    int is_syn_size = 0;
+    int is_syn_size = sizeof(is_syn);
 
     RBSRT_SOCKET_BASE_UNWRAP(self, socket);
 
@@ -1113,7 +1113,7 @@ VALUE rbsrt_socket_get_tsbpdmode(VALUE self)
     RBSRT_SOCKET_BASE_UNWRAP(self, socket);
 
     int32_t tsbpdmode;
-    int tsbpdmode_size;
+    int tsbpdmode_size = sizeof(tsbpdmode);
 
     if (srt_getsockflag(socket->socket, SRTO_TSBPDMODE, &tsbpdmode, &tsbpdmode_size) == SRT_ERROR)
     {
